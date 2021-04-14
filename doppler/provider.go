@@ -29,7 +29,7 @@ func Provider() *schema.Provider {
 		},
 		ResourcesMap: map[string]*schema.Resource{},
 		DataSourcesMap: map[string]*schema.Resource{
-			"doppler_secrets":         dataSourceSecrets(),
+			"doppler_secrets": dataSourceSecrets(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}

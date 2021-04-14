@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -52,7 +51,7 @@ func dataSourceSecrets() *schema.Resource {
 			"format": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default: "computed",
+				Default:  "computed",
 				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
 					v := val.(string)
 					if v != "raw" && v != "computed" {
