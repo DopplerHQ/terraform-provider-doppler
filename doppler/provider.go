@@ -21,7 +21,7 @@ func Provider() *schema.Provider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_VERIFY_TLS", true),
 			},
-			"token": &schema.Schema{
+			"doppler_token": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_TOKEN", nil),
@@ -41,7 +41,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		host = defaultAPIHost
 	}
 	verifyTLS := d.Get("verify_tls").(bool)
-	token := d.Get("token").(string)
+	token := d.Get("doppler_token").(string)
 
 	var diags diag.Diagnostics
 
