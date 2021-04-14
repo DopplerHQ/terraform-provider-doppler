@@ -16,7 +16,6 @@ func dataSourceSecretsRead(ctx context.Context, d *schema.ResourceData, m interf
 	apiContext := m.(APIContext)
 
 	format := d.Get("format").(string)
-	lowercase := d.Get("lowercase").(bool)
 
 	result, err := GetSecrets(apiContext)
 	if err != nil {
@@ -26,23 +25,20 @@ func dataSourceSecretsRead(ctx context.Context, d *schema.ResourceData, m interf
 	secrets := make(map[string]string)
 
 	for _, computedSecret := range result {
-		var transformedName string
-		if lowercase {
-			transformedName = strings.ToLower(computedSecret.Name)
-		} else {
-			transformedName = computedSecret.Name
-		}
-
 		var transformedValue string
 		if format == "raw" {
 			transformedValue = computedSecret.RawValue
 		} else {
 			transformedValue = computedSecret.ComputedValue
 		}
-		secrets[transformedName] = transformedValue
+
+		lowercaseName := strings.ToLower(computedSecret.Name)
+
+		secrets[computedSecret.Name] = transformedValue
+		secrets[lowercaseName] = transformedValue
 	}
 
-	if err := d.Set("secrets", secrets); err != nil {
+	if err := d.Set("db", secrets); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -58,7 +54,8 @@ func dataSourceSecrets() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"format": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Default: "computed",
 				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
 					v := val.(string)
 					if v != "raw" && v != "computed" {
@@ -67,12 +64,7 @@ func dataSourceSecrets() *schema.Resource {
 					return
 				},
 			},
-			"lowercase": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-			},
-			"secrets": &schema.Schema{
+			"db": &schema.Schema{
 				Type:      schema.TypeMap,
 				Computed:  true,
 				Sensitive: true,

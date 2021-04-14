@@ -21,7 +21,7 @@ func Provider() *schema.Provider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_VERIFY_TLS", true),
 			},
-			"api_key": &schema.Schema{
+			"token": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_TOKEN", nil),
@@ -30,7 +30,6 @@ func Provider() *schema.Provider {
 		ResourcesMap: map[string]*schema.Resource{},
 		DataSourcesMap: map[string]*schema.Resource{
 			"doppler_secrets":         dataSourceSecrets(),
-			"doppler_secrets_objects": dataSourceSecretsObjects(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}
@@ -42,9 +41,9 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 		host = defaultAPIHost
 	}
 	verifyTLS := d.Get("verify_tls").(bool)
-	apiKey := d.Get("api_key").(string)
+	token := d.Get("token").(string)
 
 	var diags diag.Diagnostics
 
-	return APIContext{Host: host, APIKey: apiKey, VerifyTLS: verifyTLS}, diags
+	return APIContext{Host: host, APIKey: token, VerifyTLS: verifyTLS}, diags
 }

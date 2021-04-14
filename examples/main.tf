@@ -9,47 +9,44 @@ terraform {
 
 # The provider must always be specified with authentication
 provider "doppler" {
-  # Providing a host is optional, helpful for testing
-  # host = "https://staging-api.doppler.com"
-
-  # Your Doppler API key / service token
-  api_key = "<DOPPLER API KEY>"
-
-  # Host can be provided with the environment variable `DOPPLER_API_HOST`
-  # API key can be provided with the environment variable `DOPPLER_TOKEN`
+  # Your Doppler token
+  token = "<YOUR DOPPLER TOKEN>"
+  # The token can be provided with the environment variable `DOPPLER_TOKEN` instead
 }
 
 # Mapped access to computed secrets
-data "doppler_secrets" "computed" {
-  format = "computed"
+data "doppler_secrets" "this" {
+  # `type` is "computed" by default but can be set to "raw"
+  # type = "raw"
 }
+
 output "all_secrets_computed" {
-  value = data.doppler_secrets.computed.secrets
-  # e.g `data.doppler_secrets.computed.secrets.STRIPE_KEY`
+  value = data.doppler_secrets.this.db
 }
 
-# Mapped access to raw secrets
-data "doppler_secrets" "raw" {
-  format = "raw"
-}
-output "all_secrets_raw" {
-  value = data.doppler_secrets.raw.secrets
-  # e.g. `data.doppler_secrets.raw.secrets.STRIPE_KEY`
+output "stripe_key" {
+  # Individual keys can be accessed directly by name
+  value = data.doppler_secrets.this.db.STRIPE_KEY
 }
 
-# Both raw and computed formats can also be used with `lowercase`,
-# which converts all secret names to lowercase (a Terraform naming convention).
-data "doppler_secrets" "lower" {
-  format = "computed"
-  lowercase = true
-}
-output "all_secrets_lower" {
-  value = data.doppler_secrets.lower.secrets
-  # e.g `data.doppler_secrets.lower.secrets.stripe_key`
+output "stripe_key_lower" {
+  # Secret names are also available in lower case
+  value = data.doppler_secrets.this.db.stripe_key
 }
 
-# Full access to the secrets objects, mostly for advanced use cases
-data "doppler_secrets_objects" "objects" {}
-output "all_secrets_objects" {
-  value = data.doppler_secrets_objects.objects
+output "string_parsing" {
+  # Use `tonumber` and `tobool` to parse string values into Terraform primatives
+  value = tonumber(data.doppler_secrets.this.db.MAX_WORKERS)
+}
+
+output "json_parsing_values" {
+  # JSON values can be decoded direcly in Terraform
+  # e.g. FEATURE_FLAGS = `{ "AUTOPILOT": true, "TOP_SPEED": 130 }`
+  value = jsondecode(data.doppler_secrets.this.db.FEATURE_FLAGS)["TOP_SPEED"]
+}
+
+output "json_parsing_to_map" {
+  # JSON values can also be parsed into a Terraform map
+  # e.g. ID_MAP = `{ "AUTOPILOT": true, "TOP_SPEED": 130 }`
+  value = tomap(jsondecode(data.doppler_secrets.this.db.ID_MAP))
 }
