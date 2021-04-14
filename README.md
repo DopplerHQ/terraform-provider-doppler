@@ -27,7 +27,7 @@ provider "doppler" {
 data "doppler_secrets" "this" {}
 
 output "stripe_key" {
-  value = data.doppler_secrets.this.db.STRIPE_KEY
+  value = data.doppler_secrets.this.map.STRIPE_KEY
 }
 ```
 
