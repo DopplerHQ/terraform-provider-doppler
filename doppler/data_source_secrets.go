@@ -32,10 +32,7 @@ func dataSourceSecretsRead(ctx context.Context, d *schema.ResourceData, m interf
 			transformedValue = computedSecret.ComputedValue
 		}
 
-		lowercaseName := strings.ToLower(computedSecret.Name)
-
 		secrets[computedSecret.Name] = transformedValue
-		secrets[lowercaseName] = transformedValue
 	}
 
 	if err := d.Set("db", secrets); err != nil {
