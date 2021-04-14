@@ -21,29 +21,17 @@ terraform {
 }
 
 provider "doppler" {
-  api_key = "<DOPPLER API KEY>"
-
-  # Host can also be provided with the environment variable `DOPPLER_API_HOST`
-  # API key can also be provided with the environment variable `DOPPLER_TOKEN`
+  token = "<YOUR DOPPLER TOKEN>"
 }
 
-data "doppler_secrets" "computed" {
-  # Load variables as either "computed" or "raw"
-  format = "computed"
-}
+data "doppler_secrets" "this" {}
 
-output "all_secrets_computed" {
-  value = data.doppler_secrets.computed.secrets
-  # Or specific variables with `data.doppler_secrets.computed.secrets.STRIPE_KEY`
-}
-
-
-# Full access to the secrets objects, mostly for advanced use cases
-data "doppler_secrets_objects" "objects" {}
-output "all_secrets_objects" {
-  value = data.doppler_secrets_objects.objects
+output "stripe_key" {
+  value = data.doppler_secrets.this.db.STRIPE_KEY
 }
 ```
+
+[More examples](examples/main.tf)
 
 # Development
 
