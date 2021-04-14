@@ -35,7 +35,7 @@ func dataSourceSecretsRead(ctx context.Context, d *schema.ResourceData, m interf
 		secrets[computedSecret.Name] = transformedValue
 	}
 
-	if err := d.Set("db", secrets); err != nil {
+	if err := d.Set("map", secrets); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -61,7 +61,7 @@ func dataSourceSecrets() *schema.Resource {
 					return
 				},
 			},
-			"db": &schema.Schema{
+			"map": &schema.Schema{
 				Type:      schema.TypeMap,
 				Computed:  true,
 				Sensitive: true,
