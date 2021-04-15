@@ -47,7 +47,7 @@ func PerformRequest(context APIContext, req *http.Request) (*APIResponse, *APIEr
 	client := &http.Client{Timeout: 10 * time.Second}
 
 	req.Header.Set("user-agent", "terraform-provider-doppler")
-	req.Header.Set("api-key", context.APIKey)
+	req.SetBasicAuth(context.APIKey, "")
 	if req.Header.Get("Accept") == "" {
 		req.Header.Set("accepts", "application/json")
 	}
