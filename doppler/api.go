@@ -26,7 +26,11 @@ type ErrorResponse struct {
 }
 
 func (e *APIError) Error() string {
-	return e.Message
+	message := fmt.Sprintf("Doppler Error: %s", e.Message)
+	if underlyingError := e.Err; underlyingError != nil {
+		message = fmt.Sprintf("%s\n%s", message, underlyingError.Error())
+	}
+	return message
 }
 
 func isSuccess(statusCode int) bool {
@@ -73,6 +77,9 @@ func PerformRequest(context APIContext, req *http.Request) (*APIResponse, *APIEr
 	defer r.Body.Close()
 
 	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return &APIResponse{HTTPResponse: r, Body: nil}, &APIError{Err: err, Message: "Unable to load response data"}
+	}
 	response := &APIResponse{HTTPResponse: r, Body: body}
 
 	if !isSuccess(r.StatusCode) {
@@ -80,11 +87,11 @@ func PerformRequest(context APIContext, req *http.Request) (*APIResponse, *APIEr
 			var errResponse ErrorResponse
 			err := json.Unmarshal(body, &errResponse)
 			if err != nil {
-				return response, &APIError{Err: nil, Message: "Unable to load response"}
+				return response, &APIError{Err: err, Message: "Unable to load response"}
 			}
 			return response, &APIError{Err: nil, Message: strings.Join(errResponse.Messages, "\n")}
 		}
-		return nil, &APIError{Err: nil, Message: "Unable to load response"}
+		return nil, &APIError{Err: fmt.Errorf("%d status code; %d bytes", r.StatusCode, len(body)), Message: "Unable to load response"}
 	}
 	if err != nil {
 		return nil, &APIError{Err: err, Message: "Unable to parse response data"}
