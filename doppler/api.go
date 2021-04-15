@@ -46,7 +46,8 @@ func GetRequest(context APIContext, path string) (*APIResponse, *APIError) {
 func PerformRequest(context APIContext, req *http.Request) (*APIResponse, *APIError) {
 	client := &http.Client{Timeout: 10 * time.Second}
 
-	req.Header.Set("user-agent", "terraform-provider-doppler")
+	userAgent := fmt.Sprintf("terraform-provider-doppler/%s", ProviderVersion)
+	req.Header.Set("user-agent", userAgent)
 	req.SetBasicAuth(context.APIKey, "")
 	if req.Header.Get("accept") == "" {
 		req.Header.Set("accept", "application/json")
