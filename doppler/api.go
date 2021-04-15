@@ -11,8 +11,8 @@ import (
 )
 
 type APIResponse struct {
-	Response *http.Response
-	Body     []byte
+	HTTPResponse *http.Response
+	Body         []byte
 }
 
 type APIError struct {
@@ -48,8 +48,8 @@ func PerformRequest(context APIContext, req *http.Request) (*APIResponse, *APIEr
 
 	req.Header.Set("user-agent", "terraform-provider-doppler")
 	req.SetBasicAuth(context.APIKey, "")
-	if req.Header.Get("Accept") == "" {
-		req.Header.Set("accepts", "application/json")
+	if req.Header.Get("accept") == "" {
+		req.Header.Set("accept", "application/json")
 	}
 
 	tlsConfig := &tls.Config{
@@ -72,7 +72,7 @@ func PerformRequest(context APIContext, req *http.Request) (*APIResponse, *APIEr
 	defer r.Body.Close()
 
 	body, err := ioutil.ReadAll(r.Body)
-	response := &APIResponse{Response: r, Body: body}
+	response := &APIResponse{HTTPResponse: r, Body: body}
 
 	if !isSuccess(r.StatusCode) {
 		if contentType := r.Header.Get("content-type"); strings.HasPrefix(contentType, "application/json") {
@@ -91,8 +91,8 @@ func PerformRequest(context APIContext, req *http.Request) (*APIResponse, *APIEr
 	return response, nil
 }
 
-func GetSecrets(context APIContext) ([]ComputedSecret, *APIError) {
-	response, err := GetRequest(context, "/v3/configs/config/secrets")
+func GetSecrets(context APIContext) ([]Secret, *APIError) {
+	response, err := GetRequest(context, "/v3/configs/config/secrets/download")
 	if err != nil {
 		return nil, err
 	}

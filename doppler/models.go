@@ -1,7 +1,9 @@
 package doppler
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"sort"
 )
 
@@ -11,34 +13,33 @@ type APIContext struct {
 	VerifyTLS bool
 }
 
-type ComputedSecret struct {
-	Name          string `json:"name"`
-	RawValue      string `json:"raw"`
-	ComputedValue string `json:"computed"`
+func (ctx *APIContext) GetId() string {
+	digester := sha256.New()
+	fmt.Fprint(digester, ctx.Host)
+	fmt.Fprint(digester, ctx.APIKey)
+	fmt.Fprint(digester, ctx.VerifyTLS)
+	return fmt.Sprintf("%x", digester.Sum(nil))
 }
 
-func ParseSecrets(response []byte) ([]ComputedSecret, error) {
-	var result map[string]interface{}
+type Secret struct {
+	Name  string
+	Value string
+}
+
+func ParseSecrets(response []byte) ([]Secret, error) {
+	var result map[string]string
 	err := json.Unmarshal(response, &result)
 	if err != nil {
 		return nil, err
 	}
 
-	computed := make([]ComputedSecret, 0)
-	secrets := result["secrets"].(map[string]interface{})
-	for key, secret := range secrets {
-		computedSecret := ComputedSecret{Name: key}
-		val := secret.(map[string]interface{})
-		if val["raw"] != nil {
-			computedSecret.RawValue = val["raw"].(string)
-		}
-		if val["computed"] != nil {
-			computedSecret.ComputedValue = val["computed"].(string)
-		}
-		computed = append(computed, computedSecret)
+	secrets := make([]Secret, 0)
+	for key, value := range result {
+		secret := Secret{Name: key, Value: value}
+		secrets = append(secrets, secret)
 	}
-	sort.Slice(computed, func(i, j int) bool {
-		return computed[i].Name < computed[j].Name
+	sort.Slice(secrets, func(i, j int) bool {
+		return secrets[i].Name < secrets[j].Name
 	})
-	return computed, nil
+	return secrets, nil
 }

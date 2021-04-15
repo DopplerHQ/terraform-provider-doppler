@@ -14,11 +14,8 @@ provider "doppler" {
   # The token can be provided with the environment variable `DOPPLER_TOKEN` instead
 }
 
-# Mapped access to computed secrets
-data "doppler_secrets" "this" {
-  # `type` is "computed" by default but can be set to "raw"
-  # type = "raw"
-}
+# Mapped access to secrets
+data "doppler_secrets" "this" {}
 
 output "all_secrets" {
   value = data.doppler_secrets.this.map
