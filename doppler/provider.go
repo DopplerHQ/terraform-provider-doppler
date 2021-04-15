@@ -14,7 +14,7 @@ func Provider() *schema.Provider {
 			"host": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_API_HOST", nil),
+				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_API_HOST", defaultAPIHost),
 			},
 			"verify_tls": &schema.Schema{
 				Type:        schema.TypeBool,
@@ -37,9 +37,6 @@ func Provider() *schema.Provider {
 
 func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	host := d.Get("host").(string)
-	if host == "" {
-		host = defaultAPIHost
-	}
 	verifyTLS := d.Get("verify_tls").(bool)
 	token := d.Get("doppler_token").(string)
 
