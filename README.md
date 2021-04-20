@@ -1,12 +1,6 @@
 # Terraform Provider Doppler
 
-# Installation
-
-Currently, this provider does not exist on the Terraform registry and must be manually installed.
-
-If `doppler` is listed in the `required_providers`, the CLI will look for the Doppler provider binary in `~/.terraform.d/plugins/${host_name}/${namespace}/${type}/${version}/${target}` or `%APPDATA%\terraform.d\plugins\${host_name}/${namespace}/${type}/${version}/${target}`.
-
-Using `make install` will automatically build and install the Doppler provider binary to the target location.
+The Doppler Terraform Provider allows you to interact with your [Doppler](https://doppler.com) secrets and configuration.
 
 # Usage
 
@@ -15,7 +9,7 @@ terraform {
   required_providers {
     doppler = {
       version = "0.1"
-      source  = "doppler.com/core/doppler"
+      source = "doppler/doppler"
     }
   }
 }
@@ -26,22 +20,33 @@ provider "doppler" {
 
 data "doppler_secrets" "this" {}
 
+# Access individual secrets
 output "stripe_key" {
   value = data.doppler_secrets.this.map.STRIPE_KEY
 }
-```
 
-[More examples](examples/main.tf)
+# Use `tonumber` and `tobool` to parse string values into Terraform primatives
+output "max_workers" {
+  value = tonumber(data.doppler_secrets.this.map.MAX_WORKERS)
+}
+
+# JSON values can be decoded direcly in Terraform
+# e.g. FEATURE_FLAGS = `{ "AUTOPILOT": true, "TOP_SPEED": 130 }`
+output "json_parsing_values" {
+  value = jsondecode(data.doppler_secrets.this.map.FEATURE_FLAGS)["TOP_SPEED"]
+}
+```
 
 # Development
 
-Run the following command to build the provider
+Run the following command to build the provider:
 
 ```shell
-go build -o terraform-provider-doppler
+make build
+# Outputs terraform-provider-doppler binary
 ```
 
-## Test sample configuration
+## Test Sample Configuration
 
 First, build and install the provider.
 
@@ -61,8 +66,6 @@ terraform init && terraform apply
 # build and install
 make
 cd examples
-# remove existing lock file, if present
-rm -f .terraform.lock.hcl
 # init & apply
 terraform init
 terraform apply --auto-approve
