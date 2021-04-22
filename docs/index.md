@@ -26,3 +26,9 @@ provider "doppler" {
 
 - **host** (String) The Doppler API host (i.e. https://api.doppler.com)
 - **verify_tls** (Boolean) Whether or not to verify TLS
+
+## Getting Help
+
+If you need help, customers on our Standard, Pro, or Enterprise plan can reach out via our in-product support, or post a message in our [community forum](https://community.doppler.com/c/need-help/6).
+
+If you'd like to report an issue or request an enhancement, please [create a new issue on the repository](https://github.com/DopplerHQ/terraform-provider-doppler/issues).
