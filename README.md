@@ -1,4 +1,6 @@
-# Terraform Provider Doppler
+# Terraform Provider Doppler (Pre-Release)
+
+**This software is in pre-release and is not intended to be used in production.**
 
 The Doppler Terraform Provider allows you to interact with your [Doppler](https://doppler.com) secrets and configuration.
 
