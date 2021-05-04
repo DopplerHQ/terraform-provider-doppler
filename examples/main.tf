@@ -2,7 +2,7 @@ terraform {
   required_providers {
     doppler = {
       version = "0.0.1"
-      source  = "doppler/doppler"
+      source  = "DopplerHQ/doppler"
     }
   }
 }
