@@ -4,7 +4,9 @@ description: |-
   The Doppler provider is used to interact with resources provided by Doppler. The provider must be configured with a Doppler token for authentication.
 ---
 
-# Doppler Provider
+# Doppler Provider (Pre-Release)
+
+**This software is in pre-release and is not intended to be used in production.**
 
 The [Doppler](https://doppler.com) provider is used to interact with resources provided by Doppler. The provider must be configured with a Doppler token for authentication.
 
