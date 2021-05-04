@@ -10,7 +10,7 @@ The Doppler Terraform Provider allows you to interact with your [Doppler](https:
 terraform {
   required_providers {
     doppler = {
-      version = "0.1"
+      version = "0.0.1"
       source = "doppler/doppler"
     }
   }

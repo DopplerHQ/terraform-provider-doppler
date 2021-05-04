@@ -1,5 +1,5 @@
 package doppler
 
 var (
-	ProviderVersion = "v0.1.0"
+	ProviderVersion = "v0.0.1"
 )
