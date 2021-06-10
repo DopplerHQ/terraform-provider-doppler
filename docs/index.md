@@ -14,7 +14,7 @@ The [Doppler](https://doppler.com) provider is used to interact with resources p
 
 ```hcl
 provider "doppler" {
-  token = "<YOUR DOPPLER TOKEN>"
+  doppler_token = "<YOUR DOPPLER TOKEN>"
 }
 ```
 

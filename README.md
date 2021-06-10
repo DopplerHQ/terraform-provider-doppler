@@ -17,7 +17,7 @@ terraform {
 }
 
 provider "doppler" {
-  token = "<YOUR DOPPLER TOKEN>"
+  doppler_token = "<YOUR DOPPLER TOKEN>"
 }
 
 data "doppler_secrets" "this" {}
