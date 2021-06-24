@@ -12,17 +12,17 @@ const defaultAPIHost = "https://api.doppler.com"
 func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"host": &schema.Schema{
+			"host": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_API_HOST", defaultAPIHost),
 			},
-			"verify_tls": &schema.Schema{
+			"verify_tls": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_VERIFY_TLS", true),
 			},
-			"doppler_token": &schema.Schema{
+			"doppler_token": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_TOKEN", nil),

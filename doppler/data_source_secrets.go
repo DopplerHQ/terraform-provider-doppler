@@ -35,7 +35,7 @@ func dataSourceSecrets() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceSecretsRead,
 		Schema: map[string]*schema.Schema{
-			"map": &schema.Schema{
+			"map": {
 				Type:      schema.TypeMap,
 				Computed:  true,
 				Sensitive: true,
