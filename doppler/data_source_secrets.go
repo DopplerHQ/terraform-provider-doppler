@@ -9,11 +9,11 @@ import (
 
 func dataSourceSecretsRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
-	apiContext := m.(APIContext)
+	client := m.(APIClient)
 
-	d.SetId(apiContext.GetId())
+	d.SetId(client.GetId())
 
-	result, err := GetSecrets(apiContext)
+	result, err := client.GetSecrets(ctx)
 	if err != nil {
 		return diag.FromErr(err)
 	}

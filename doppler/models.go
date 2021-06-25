@@ -1,25 +1,9 @@
 package doppler
 
 import (
-	"crypto/sha256"
 	"encoding/json"
-	"fmt"
 	"sort"
 )
-
-type APIContext struct {
-	Host      string
-	APIKey    string
-	VerifyTLS bool
-}
-
-func (ctx *APIContext) GetId() string {
-	digester := sha256.New()
-	fmt.Fprint(digester, ctx.Host)
-	fmt.Fprint(digester, ctx.APIKey)
-	fmt.Fprint(digester, ctx.VerifyTLS)
-	return fmt.Sprintf("%x", digester.Sum(nil))
-}
 
 type Secret struct {
 	Name  string

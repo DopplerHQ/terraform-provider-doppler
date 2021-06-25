@@ -43,5 +43,5 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 
 	var diags diag.Diagnostics
 
-	return APIContext{Host: host, APIKey: token, VerifyTLS: verifyTLS}, diags
+	return APIClient{Host: host, APIKey: token, VerifyTLS: verifyTLS}, diags
 }
