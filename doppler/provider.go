@@ -28,7 +28,9 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_TOKEN", nil),
 			},
 		},
-		ResourcesMap: map[string]*schema.Resource{},
+		ResourcesMap: map[string]*schema.Resource{
+			"doppler_secret": resourceSecret(),
+		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"doppler_secrets": dataSourceSecrets(),
 		},

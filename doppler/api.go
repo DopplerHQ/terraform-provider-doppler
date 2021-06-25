@@ -158,14 +158,71 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 	return response, nil
 }
 
-func (client APIClient) GetSecrets(ctx context.Context) ([]Secret, *APIError) {
-	response, err := client.GetRequest(ctx, "/v3/configs/config/secrets/download", []QueryParam{})
+func (client APIClient) GetComputedSecrets(ctx context.Context, project string, config string) ([]ComputedSecret, *APIError) {
+	var params []QueryParam
+	if project != "" {
+		params = append(params, QueryParam{Key: "project", Value: project})
+	}
+	if config != "" {
+		params = append(params, QueryParam{Key: "config", Value: config})
+	}
+	response, err := client.GetRequest(ctx, "/v3/configs/config/secrets/download", params)
 	if err != nil {
 		return nil, err
 	}
-	result, modelErr := ParseSecrets(response.Body)
+	result, modelErr := ParseComputedSecrets(response.Body)
 	if modelErr != nil {
 		return nil, &APIError{Err: modelErr, Message: "Unable to parse secrets"}
 	}
 	return result, nil
+}
+
+func (client APIClient) GetSecret(ctx context.Context, project string, config string, secretName string) (*Secret, *APIError) {
+	var params []QueryParam
+	if project != "" {
+		params = append(params, QueryParam{Key: "project", Value: project})
+	}
+	if config != "" {
+		params = append(params, QueryParam{Key: "config", Value: config})
+	}
+	params = append(params, QueryParam{Key: "name", Value: secretName})
+	response, err := client.GetRequest(ctx, "/v3/configs/config/secret", params)
+	if err != nil {
+		return nil, err
+	}
+	var result Secret
+	jsonErr := json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse secret"}
+	}
+	return &result, nil
+}
+
+func (client APIClient) UpdateSecrets(ctx context.Context, project string, config string, secrets []RawSecret) *APIError {
+	secretsPayload := map[string]interface{}{}
+	for _, secret := range secrets {
+		if secret.Value != nil {
+			secretsPayload[secret.Name] = *secret.Value
+		} else {
+			secretsPayload[secret.Name] = nil
+		}
+	}
+	payload := map[string]interface{}{
+		"secrets": secretsPayload,
+	}
+	if project != "" {
+		payload["project"] = project
+	}
+	if config != "" {
+		payload["config"] = config
+	}
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return &APIError{Err: jsonErr, Message: "Unable to parse secrets"}
+	}
+	_, err := client.PostRequest(ctx, "/v3/configs/config/secrets", []QueryParam{}, body)
+	if err != nil {
+		return err
+	}
+	return nil
 }

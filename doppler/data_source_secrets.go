@@ -12,8 +12,10 @@ func dataSourceSecretsRead(ctx context.Context, d *schema.ResourceData, m interf
 	client := m.(APIClient)
 
 	d.SetId(client.GetId())
+	project := d.Get("project").(string)
+	config := d.Get("config").(string)
 
-	result, err := client.GetSecrets(ctx)
+	result, err := client.GetComputedSecrets(ctx, project, config)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -35,6 +37,16 @@ func dataSourceSecrets() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceSecretsRead,
 		Schema: map[string]*schema.Schema{
+			"project": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
+			},
+			"config": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
+			},
 			"map": {
 				Type:      schema.TypeMap,
 				Computed:  true,

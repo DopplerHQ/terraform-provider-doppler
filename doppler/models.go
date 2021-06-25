@@ -3,27 +3,47 @@ package doppler
 import (
 	"encoding/json"
 	"sort"
+	"strings"
 )
 
-type Secret struct {
+type RawSecret struct {
+	Name  string
+	Value *string
+}
+
+type ComputedSecret struct {
 	Name  string
 	Value string
 }
 
-func ParseSecrets(response []byte) ([]Secret, error) {
+func ParseComputedSecrets(response []byte) ([]ComputedSecret, error) {
 	var result map[string]string
 	err := json.Unmarshal(response, &result)
 	if err != nil {
 		return nil, err
 	}
 
-	secrets := make([]Secret, 0)
+	secrets := make([]ComputedSecret, 0)
 	for key, value := range result {
-		secret := Secret{Name: key, Value: value}
+		secret := ComputedSecret{Name: key, Value: value}
 		secrets = append(secrets, secret)
 	}
 	sort.Slice(secrets, func(i, j int) bool {
 		return secrets[i].Name < secrets[j].Name
 	})
 	return secrets, nil
+}
+
+type Secret struct {
+	Name  string      `json:"name"`
+	Value SecretValue `json:"value"`
+}
+
+type SecretValue struct {
+	Raw      string `json:"raw"`
+	Computed string `json:"computed"`
+}
+
+func getSecretId(project string, config string, name string) string {
+	return strings.Join([]string{project, config, name}, ".")
 }
