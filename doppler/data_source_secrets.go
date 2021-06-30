@@ -38,19 +38,22 @@ func dataSourceSecrets() *schema.Resource {
 		ReadContext: dataSourceSecretsRead,
 		Schema: map[string]*schema.Schema{
 			"project": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Description: "The name of the Doppler project (required for personal tokens)",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
 			},
 			"config": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Description: "The name of the Doppler config (required for personal tokens)",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
 			},
 			"map": {
-				Type:      schema.TypeMap,
-				Computed:  true,
-				Sensitive: true,
+				Description: "A mapping of secret names to computed secret values",
+				Type:        schema.TypeMap,
+				Computed:    true,
+				Sensitive:   true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},

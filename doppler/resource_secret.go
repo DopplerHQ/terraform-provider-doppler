@@ -17,26 +17,31 @@ func resourceSecret() *schema.Resource {
 		DeleteContext: resourceSecretDelete,
 		Schema: map[string]*schema.Schema{
 			"project": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "The name of the Doppler project",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"config": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "The name of the Doppler config",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "The name of the Doppler secret",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"value": {
-				Type:      schema.TypeString,
-				Required:  true,
-				Sensitive: true,
+				Description: "The raw secret value",
+				Type:        schema.TypeString,
+				Required:    true,
+				Sensitive:   true,
 			},
 			"computed": {
-				Type:      schema.TypeString,
-				Computed:  true,
-				Sensitive: true,
+				Description: "The computed secret value, after resolving secret references",
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
 			},
 		},
 		CustomizeDiff: customdiff.ComputedIf("computed", func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) bool {
