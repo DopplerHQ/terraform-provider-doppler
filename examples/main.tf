@@ -1,8 +1,8 @@
 terraform {
   required_providers {
     doppler = {
-      version = "0.0.1"
-      source  = "DopplerHQ/doppler"
+      # version = <latest version>
+      source = "DopplerHQ/doppler"
     }
   }
 }
@@ -53,7 +53,7 @@ resource "random_password" "db_password" {
   special = true
 }
 
-resource "doppler_secret" "db_passsword" {
+resource "doppler_secret" "db_password" {
   project = "backend"
   config = "dev"
   name = "DB_PASSWORD"

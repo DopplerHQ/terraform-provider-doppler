@@ -3,7 +3,8 @@ HOSTNAME=doppler.com
 NAMESPACE=core
 NAME=doppler
 BINARY=terraform-provider-${NAME}
-VERSION=dev
+# Only used for local development
+VERSION=0.0.1
 OS_ARCH=darwin_amd64
 
 default: install
