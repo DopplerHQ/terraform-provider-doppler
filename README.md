@@ -61,19 +61,21 @@ First, build and install the provider.
 make install
 ```
 
+Update `examples/main.tf` with the local development provider:
+
+```hcl
+terraform {
+  required_providers {
+    doppler = {
+      source  = "doppler.com/core/doppler"
+    }
+  }
+}
+```
+
 Then, run the following command to initialize the workspace and apply the sample configuration.
 
 ```shell
-terraform init && terraform apply
-```
-
-## Running the Example
-
-```shell
-# build and install
-make
 cd examples
-# init & apply
-terraform init
-terraform apply --auto-approve
+terraform init && terraform apply
 ```
