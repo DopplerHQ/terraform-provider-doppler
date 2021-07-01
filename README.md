@@ -1,16 +1,14 @@
-# Terraform Provider Doppler (Pre-Release)
-
-**This software is in pre-release and is not intended to be used in production.**
+# Terraform Provider Doppler
 
 The Doppler Terraform Provider allows you to interact with your [Doppler](https://doppler.com) secrets and configuration.
 
 # Usage
 
-```
+```hcl
 terraform {
   required_providers {
     doppler = {
-      version = "0.0.1"
+      # version = <latest version>
       source = "DopplerHQ/doppler"
     }
   }
@@ -32,10 +30,17 @@ output "max_workers" {
   value = tonumber(data.doppler_secrets.this.map.MAX_WORKERS)
 }
 
-# JSON values can be decoded direcly in Terraform
-# e.g. FEATURE_FLAGS = `{ "AUTOPILOT": true, "TOP_SPEED": 130 }`
-output "json_parsing_values" {
-  value = jsondecode(data.doppler_secrets.this.map.FEATURE_FLAGS)["TOP_SPEED"]
+resource "random_password" "db_password" {
+  length = 32
+  special = true
+}
+
+# Set secrets in Doppler
+resource "doppler_secret" "db_password" {
+  project = "backend"
+  config = "dev"
+  name = "DB_PASSWORD"
+  value = random_password.db_password.result
 }
 ```
 
