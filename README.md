@@ -44,6 +44,55 @@ resource "doppler_secret" "db_password" {
 }
 ```
 
+## Referencing Secrets Using Multiple Access Tokens
+
+```
+terraform {
+  required_providers {
+    doppler = {
+      source = "DopplerHQ/doppler"
+      version = "1.0.0"
+    }
+  }
+}
+
+variable "doppler_token_dev" {
+  type = string
+  description = "A token to authenticate with Doppler"
+}
+
+variable "doppler_token_prd" {
+  type = string
+  description = "A token to authenticate with Doppler"
+}
+
+provider "doppler" {
+  doppler_token = var.doppler_token_dev
+  alias = "dev"
+}
+
+provider "doppler" {
+  doppler_token = var.doppler_token_prd
+  alias = "prd"
+}
+
+data "doppler_secrets" "dev" {
+  provider = doppler.dev
+}
+
+data "doppler_secrets" "prd" {
+  provider = doppler.prd
+}
+
+output "port-dev" {
+  value = nonsensitive(data.doppler_secrets.dev.map.PORT)
+}
+
+output "port-prd" {
+  value = nonsensitive(data.doppler_secrets.prd.map.PORT)
+}
+```
+
 # Development
 
 Run the following command to build the provider:
