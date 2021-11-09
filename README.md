@@ -58,12 +58,12 @@ terraform {
 
 variable "doppler_token_dev" {
   type = string
-  description = "A token to authenticate with Doppler"
+  description = "A token to authenticate with Doppler for the dev config"
 }
 
 variable "doppler_token_prd" {
   type = string
-  description = "A token to authenticate with Doppler"
+  description = "A token to authenticate with Doppler for the prd config"
 }
 
 provider "doppler" {
