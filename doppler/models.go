@@ -67,3 +67,26 @@ type Project struct {
 type ProjectResponse struct {
 	Project Project `json:"project"`
 }
+
+type Environment struct {
+	Slug      string `json:"slug"`
+	Name      string `json:"name"`
+	Project   string `json:"project"`
+	CreatedAt string `json:"created_at"`
+}
+
+type EnvironmentResponse struct {
+	Environment Environment `json:"environment"`
+}
+
+func (e Environment) getResourceId() string {
+	return strings.Join([]string{e.Project, e.Slug}, ".")
+}
+
+func parseEnvironmentResourceId(id string) (project string, name string, err error) {
+	tokens := strings.Split(id, ".")
+	if len(tokens) != 2 {
+		return "", "", errors.New("invalid environment ID")
+	}
+	return tokens[0], tokens[1], nil
+}

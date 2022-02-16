@@ -308,3 +308,82 @@ func (client APIClient) DeleteProject(ctx context.Context, name string) error {
 	}
 	return nil
 }
+
+// Environments
+
+func (client APIClient) GetEnvironment(ctx context.Context, project string, name string) (*Environment, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+		{Key: "environment", Value: name},
+	}
+	response, err := client.GetRequest(ctx, "/v3/environments/environment", params)
+	if err != nil {
+		return nil, err
+	}
+	var result EnvironmentResponse
+	jsonErr := json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse environment"}
+	}
+	return &result.Environment, nil
+}
+
+func (client APIClient) CreateEnvironment(ctx context.Context, project string, slug string, name string) (*Environment, error) {
+	payload := map[string]interface{}{
+		"project": project,
+		"name":    name,
+		"slug":    slug,
+	}
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize environment"}
+	}
+	response, err := client.PostRequest(ctx, "/v3/environments", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result EnvironmentResponse
+	jsonErr = json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse environment"}
+	}
+	return &result.Environment, nil
+}
+
+func (client APIClient) RenameEnvironment(ctx context.Context, project string, currentSlug string, newSlug string, newName string) (*Environment, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+		{Key: "environment", Value: currentSlug},
+	}
+	payload := map[string]interface{}{
+		"slug": newSlug,
+		"name": newName,
+	}
+
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize environment"}
+	}
+	response, err := client.PutRequest(ctx, "/v3/environments/environment", params, body)
+	if err != nil {
+		return nil, err
+	}
+	var result EnvironmentResponse
+	jsonErr = json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse project"}
+	}
+	return &result.Environment, nil
+}
+
+func (client APIClient) DeleteEnvironment(ctx context.Context, project string, slug string) error {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+		{Key: "environment", Value: slug},
+	}
+	_, err := client.DeleteRequest(ctx, "/v3/environments/environment", params, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}

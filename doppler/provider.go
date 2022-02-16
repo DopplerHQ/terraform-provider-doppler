@@ -32,8 +32,9 @@ func Provider() *schema.Provider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"doppler_secret":  resourceSecret(),
-			"doppler_project": resourceProject(),
+			"doppler_secret":      resourceSecret(),
+			"doppler_project":     resourceProject(),
+			"doppler_environment": resourceEnvironment(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"doppler_secrets": dataSourceSecrets(),
