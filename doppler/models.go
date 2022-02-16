@@ -90,3 +90,29 @@ func parseEnvironmentResourceId(id string) (project string, name string, err err
 	}
 	return tokens[0], tokens[1], nil
 }
+
+type Config struct {
+	Slug        string `json:"slug"`
+	Name        string `json:"name"`
+	Project     string `json:"project"`
+	Environment string `json:"environment"`
+	Locked      bool   `json:"locked"`
+	Root        bool   `json:"root"`
+	CreatedAt   string `json:"created_at"`
+}
+
+type ConfigResponse struct {
+	Config Config `json:"config"`
+}
+
+func (c Config) getResourceId() string {
+	return strings.Join([]string{c.Project, c.Environment, c.Name}, ".")
+}
+
+func parseConfigResourceId(id string) (project string, environment string, name string, err error) {
+	tokens := strings.Split(id, ".")
+	if len(tokens) != 3 {
+		return "", "", "", errors.New("invalid config ID")
+	}
+	return tokens[0], tokens[1], tokens[2], nil
+}

@@ -387,3 +387,84 @@ func (client APIClient) DeleteEnvironment(ctx context.Context, project string, s
 	}
 	return nil
 }
+
+// Configs
+
+func (client APIClient) GetConfig(ctx context.Context, project string, name string) (*Config, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+		{Key: "config", Value: name},
+	}
+	response, err := client.GetRequest(ctx, "/v3/configs/config", params)
+	if err != nil {
+		return nil, err
+	}
+	var result ConfigResponse
+	jsonErr := json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse config"}
+	}
+	return &result.Config, nil
+}
+
+func (client APIClient) CreateConfig(ctx context.Context, project string, environment string, name string) (*Config, error) {
+	payload := map[string]interface{}{
+		"project":     project,
+		"environment": environment,
+		"name":        name,
+	}
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize config"}
+	}
+	response, err := client.PostRequest(ctx, "/v3/configs", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ConfigResponse
+	jsonErr = json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse config"}
+	}
+	return &result.Config, nil
+}
+
+func (client APIClient) RenameConfig(ctx context.Context, project string, currentName string, newName string) (*Config, error) {
+	payload := map[string]interface{}{
+		"project": project,
+		"config":  currentName,
+		"name":    newName,
+	}
+
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize config"}
+	}
+	response, err := client.PostRequest(ctx, "/v3/configs/config", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ConfigResponse
+	jsonErr = json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse config"}
+	}
+	return &result.Config, nil
+}
+
+func (client APIClient) DeleteConfig(ctx context.Context, project string, name string) error {
+	payload := map[string]interface{}{
+		"project": project,
+		"config":  name,
+	}
+
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return &APIError{Err: jsonErr, Message: "Unable to serialize config"}
+	}
+	_, err := client.DeleteRequest(ctx, "/v3/configs/config", []QueryParam{}, body)
+	if err != nil {
+		return err
+	}
+	return nil
+}
