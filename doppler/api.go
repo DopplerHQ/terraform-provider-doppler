@@ -89,9 +89,9 @@ func (client APIClient) PutRequest(ctx context.Context, path string, params []Qu
 	return client.PerformRequest(req, params)
 }
 
-func (client APIClient) DeleteRequest(ctx context.Context, path string, params []QueryParam) (*APIResponse, error) {
+func (client APIClient) DeleteRequest(ctx context.Context, path string, params []QueryParam, body []byte) (*APIResponse, error) {
 	url := fmt.Sprintf("%s%s", client.Host, path)
-	req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "DELETE", url, bytes.NewReader(body))
 	if err != nil {
 		return nil, &APIError{Err: err, Message: "Unable to form request"}
 	}
