@@ -116,3 +116,34 @@ func parseConfigResourceId(id string) (project string, environment string, name 
 	}
 	return tokens[0], tokens[1], tokens[2], nil
 }
+
+type ServiceToken struct {
+	Slug        string `json:"slug"`
+	Name        string `json:"name"`
+	Project     string `json:"project"`
+	Environment string `json:"environment"`
+	Config      string `json:"config"`
+	Access      string `json:"access"`
+	Key         string `json:"key"`
+	CreatedAt   string `json:"created_at"`
+}
+
+type ServiceTokenResponse struct {
+	ServiceToken ServiceToken `json:"token"`
+}
+
+type ServiceTokenListResponse struct {
+	ServiceTokens []ServiceToken `json:"tokens"`
+}
+
+func (t ServiceToken) getResourceId() string {
+	return strings.Join([]string{t.Project, t.Config, t.Slug}, ".")
+}
+
+func parseServiceTokenResourceId(id string) (project string, config string, slug string, err error) {
+	tokens := strings.Split(id, ".")
+	if len(tokens) != 3 {
+		return "", "", "", errors.New("invalid service token ID")
+	}
+	return tokens[0], tokens[1], tokens[2], nil
+}

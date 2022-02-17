@@ -468,3 +468,63 @@ func (client APIClient) DeleteConfig(ctx context.Context, project string, name s
 	}
 	return nil
 }
+
+// Service Tokens
+
+func (client APIClient) GetServiceTokens(ctx context.Context, project string, config string) ([]ServiceToken, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+		{Key: "config", Value: config},
+	}
+	response, err := client.GetRequest(ctx, "/v3/configs/config/tokens", params)
+	if err != nil {
+		return nil, err
+	}
+	var result ServiceTokenListResponse
+	jsonErr := json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse service tokens"}
+	}
+	return result.ServiceTokens, nil
+}
+
+func (client APIClient) CreateServiceToken(ctx context.Context, project string, config string, access string, name string) (*ServiceToken, error) {
+	payload := map[string]interface{}{
+		"project": project,
+		"config":  config,
+		"access":  access,
+		"name":    name,
+	}
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize service token"}
+	}
+	response, err := client.PostRequest(ctx, "/v3/configs/config/tokens", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ServiceTokenResponse
+	jsonErr = json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse service token"}
+	}
+	return &result.ServiceToken, nil
+}
+
+func (client APIClient) DeleteServiceToken(ctx context.Context, project string, config string, slug string) error {
+	payload := map[string]interface{}{
+		"project": project,
+		"config":  config,
+		"slug":    slug,
+	}
+
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return &APIError{Err: jsonErr, Message: "Unable to serialize config"}
+	}
+	_, err := client.DeleteRequest(ctx, "/v3/configs/config/tokens/token", []QueryParam{}, body)
+	if err != nil {
+		return err
+	}
+	return nil
+}
