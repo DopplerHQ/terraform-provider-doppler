@@ -158,6 +158,8 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 	return response, nil
 }
 
+// Secrets
+
 func (client APIClient) GetComputedSecrets(ctx context.Context, project string, config string) ([]ComputedSecret, error) {
 	var params []QueryParam
 	if project != "" {
@@ -221,6 +223,86 @@ func (client APIClient) UpdateSecrets(ctx context.Context, project string, confi
 		return &APIError{Err: jsonErr, Message: "Unable to parse secrets"}
 	}
 	_, err := client.PostRequest(ctx, "/v3/configs/config/secrets", []QueryParam{}, body)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Projects
+
+func (client APIClient) GetProject(ctx context.Context, name string) (*Project, error) {
+	params := []QueryParam{
+		{Key: "project", Value: name},
+	}
+	response, err := client.GetRequest(ctx, "/v3/projects/project", params)
+	if err != nil {
+		return nil, err
+	}
+	var result ProjectResponse
+	jsonErr := json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse project"}
+	}
+	return &result.Project, nil
+}
+
+func (client APIClient) CreateProject(ctx context.Context, name string, description string) (*Project, error) {
+	payload := map[string]interface{}{
+		"name":                        name,
+		"create_default_environments": false,
+	}
+	if description != "" {
+		payload["description"] = description
+	}
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize project"}
+	}
+	response, err := client.PostRequest(ctx, "/v3/projects", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ProjectResponse
+	jsonErr = json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse project"}
+	}
+	return &result.Project, nil
+}
+
+func (client APIClient) UpdateProject(ctx context.Context, currentName string, newName string, description string) (*Project, error) {
+	payload := map[string]interface{}{
+		"project":     currentName,
+		"name":        newName,
+		"description": description,
+	}
+
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize project"}
+	}
+	response, err := client.PostRequest(ctx, "/v3/projects/project", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ProjectResponse
+	jsonErr = json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse project"}
+	}
+	return &result.Project, nil
+}
+
+func (client APIClient) DeleteProject(ctx context.Context, name string) error {
+	payload := map[string]interface{}{
+		"project": name,
+	}
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return &APIError{Err: jsonErr, Message: "Unable to serialize project"}
+	}
+	_, err := client.DeleteRequest(ctx, "/v3/projects/project", []QueryParam{}, body)
 	if err != nil {
 		return err
 	}

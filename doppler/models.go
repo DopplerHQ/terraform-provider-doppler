@@ -56,3 +56,14 @@ func parseSecretId(id string) (project string, config string, name string, err e
 	}
 	return tokens[0], tokens[1], tokens[2], nil
 }
+
+type Project struct {
+	Slug        string `json:"slug"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	CreatedAt   string `json:"created_at"`
+}
+
+type ProjectResponse struct {
+	Project Project `json:"project"`
+}
