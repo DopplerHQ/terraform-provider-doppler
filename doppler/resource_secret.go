@@ -79,14 +79,10 @@ func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface
 	var diags diag.Diagnostics
 
 	secretId := d.Id()
-	tokens := strings.Split(secretId, ".")
-	if len(tokens) != 3 {
-		return diag.Errorf("Invalid secretId")
+	project, config, name, err := parseSecretId(secretId)
+	if err != nil {
+		return diag.FromErr(err)
 	}
-
-	project := tokens[0]
-	config := tokens[1]
-	name := tokens[2]
 
 	secret, err := client.GetSecret(ctx, project, config, name)
 	if err != nil {

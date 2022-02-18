@@ -2,6 +2,7 @@ package doppler
 
 import (
 	"encoding/json"
+	"errors"
 	"sort"
 	"strings"
 )
@@ -46,4 +47,12 @@ type SecretValue struct {
 
 func getSecretId(project string, config string, name string) string {
 	return strings.Join([]string{project, config, name}, ".")
+}
+
+func parseSecretId(id string) (project string, config string, name string, err error) {
+	tokens := strings.Split(id, ".")
+	if len(tokens) != 3 {
+		return "", "", "", errors.New("invalid secret ID")
+	}
+	return tokens[0], tokens[1], tokens[2], nil
 }
