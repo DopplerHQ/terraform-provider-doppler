@@ -59,7 +59,7 @@ func isSuccess(statusCode int) bool {
 	return (statusCode >= 200 && statusCode <= 299) || (statusCode >= 300 && statusCode <= 399)
 }
 
-func (client APIClient) GetRequest(ctx context.Context, path string, params []QueryParam) (*APIResponse, *APIError) {
+func (client APIClient) GetRequest(ctx context.Context, path string, params []QueryParam) (*APIResponse, error) {
 	url := fmt.Sprintf("%s%s", client.Host, path)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -69,7 +69,7 @@ func (client APIClient) GetRequest(ctx context.Context, path string, params []Qu
 	return client.PerformRequest(req, params)
 }
 
-func (client APIClient) PostRequest(ctx context.Context, path string, params []QueryParam, body []byte) (*APIResponse, *APIError) {
+func (client APIClient) PostRequest(ctx context.Context, path string, params []QueryParam, body []byte) (*APIResponse, error) {
 	url := fmt.Sprintf("%s%s", client.Host, path)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
 	if err != nil {
@@ -79,7 +79,7 @@ func (client APIClient) PostRequest(ctx context.Context, path string, params []Q
 	return client.PerformRequest(req, params)
 }
 
-func (client APIClient) PutRequest(ctx context.Context, path string, params []QueryParam, body []byte) (*APIResponse, *APIError) {
+func (client APIClient) PutRequest(ctx context.Context, path string, params []QueryParam, body []byte) (*APIResponse, error) {
 	url := fmt.Sprintf("%s%s", client.Host, path)
 	req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewReader(body))
 	if err != nil {
@@ -89,7 +89,7 @@ func (client APIClient) PutRequest(ctx context.Context, path string, params []Qu
 	return client.PerformRequest(req, params)
 }
 
-func (client APIClient) DeleteRequest(ctx context.Context, path string, params []QueryParam) (*APIResponse, *APIError) {
+func (client APIClient) DeleteRequest(ctx context.Context, path string, params []QueryParam) (*APIResponse, error) {
 	url := fmt.Sprintf("%s%s", client.Host, path)
 	req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
 	if err != nil {
@@ -99,7 +99,7 @@ func (client APIClient) DeleteRequest(ctx context.Context, path string, params [
 	return client.PerformRequest(req, params)
 }
 
-func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (*APIResponse, *APIError) {
+func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (*APIResponse, error) {
 	httpClient := &http.Client{Timeout: 10 * time.Second}
 
 	userAgent := fmt.Sprintf("terraform-provider-doppler/%s", ProviderVersion)
@@ -158,7 +158,7 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 	return response, nil
 }
 
-func (client APIClient) GetComputedSecrets(ctx context.Context, project string, config string) ([]ComputedSecret, *APIError) {
+func (client APIClient) GetComputedSecrets(ctx context.Context, project string, config string) ([]ComputedSecret, error) {
 	var params []QueryParam
 	if project != "" {
 		params = append(params, QueryParam{Key: "project", Value: project})
@@ -177,7 +177,7 @@ func (client APIClient) GetComputedSecrets(ctx context.Context, project string, 
 	return result, nil
 }
 
-func (client APIClient) GetSecret(ctx context.Context, project string, config string, secretName string) (*Secret, *APIError) {
+func (client APIClient) GetSecret(ctx context.Context, project string, config string, secretName string) (*Secret, error) {
 	var params []QueryParam
 	if project != "" {
 		params = append(params, QueryParam{Key: "project", Value: project})
@@ -198,7 +198,7 @@ func (client APIClient) GetSecret(ctx context.Context, project string, config st
 	return &result, nil
 }
 
-func (client APIClient) UpdateSecrets(ctx context.Context, project string, config string, secrets []RawSecret) *APIError {
+func (client APIClient) UpdateSecrets(ctx context.Context, project string, config string, secrets []RawSecret) error {
 	secretsPayload := map[string]interface{}{}
 	for _, secret := range secrets {
 		if secret.Value != nil {
