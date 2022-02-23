@@ -2,14 +2,14 @@
 page_title: "doppler_config Resource - terraform-provider-doppler"
 subcategory: ""
 description: |-
-	Manages a Doppler config.
+	Manage a Doppler config.
 ---
 
 # doppler_config (Resource, Pre-Release)
 
 **This resource is in pre-release and is not intended to be used in production.**
 
-Manages a Doppler config.
+Manage a Doppler config.
 
 ## Example Usage
 

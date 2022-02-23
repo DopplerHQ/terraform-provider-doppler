@@ -2,14 +2,14 @@
 page_title: "doppler_service_token Resource - terraform-provider-doppler"
 subcategory: ""
 description: |-
-	Manages a Doppler service_token.
+	Manage a Doppler service_token.
 ---
 
 # doppler_service_token (Resource, Pre-Release)
 
 **This resource is in pre-release and is not intended to be used in production.**
 
-Manages a Doppler service token.
+Manage a Doppler service token.
 
 ## Example Usage
 

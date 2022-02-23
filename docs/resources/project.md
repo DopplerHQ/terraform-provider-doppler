@@ -2,14 +2,14 @@
 page_title: "doppler_project Resource - terraform-provider-doppler"
 subcategory: ""
 description: |-
-	Manages a Doppler project.
+	Manage a Doppler project.
 ---
 
 # doppler_project (Resource, Pre-Release)
 
 **This resource is in pre-release and is not intended to be used in production.**
 
-Manages a Doppler project.
+Manage a Doppler project.
 
 ## Example Usage
 

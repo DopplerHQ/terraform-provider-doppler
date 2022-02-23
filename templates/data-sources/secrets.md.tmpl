@@ -2,12 +2,12 @@
 page_title: "doppler_secrets Data Source - terraform-provider-doppler"
 subcategory: "Secrets"
 description: |-
-  Retrieves all secrets in the config.
+  Retrieve all secrets in the config.
 ---
 
 # doppler_secrets (Data Source)
 
-Retrieves all secrets in the config.
+Retrieve all secrets in the config.
 
 ## Example Usage
 

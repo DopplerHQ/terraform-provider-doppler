@@ -2,14 +2,14 @@
 page_title: "doppler_environment Resource - terraform-provider-doppler"
 subcategory: ""
 description: |-
-	Manages a Doppler environment.
+	Manage a Doppler environment.
 ---
 
 # doppler_environment (Resource, Pre-Release)
 
 **This resource is in pre-release and is not intended to be used in production.**
 
-Manages a Doppler environment.
+Manage a Doppler environment.
 
 ## Example Usage
 
