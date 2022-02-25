@@ -14,11 +14,18 @@ terraform {
   }
 }
 
-provider "doppler" {
-  doppler_token = "<YOUR DOPPLER TOKEN>"
+variable "doppler_token" {
+  type = string
 }
 
-data "doppler_secrets" "this" {}
+provider "doppler" {
+  doppler_token = var.doppler_token
+}
+
+data "doppler_secrets" "this" {
+  project = "backend"
+  config = "dev"
+}
 
 # Access individual secrets
 output "stripe_key" {
@@ -41,6 +48,32 @@ resource "doppler_secret" "db_password" {
   config = "dev"
   name = "DB_PASSWORD"
   value = random_password.db_password.result
+}
+
+# Create and modify Doppler projects, environments, configs, and service tokens
+
+resource "doppler_project" "test_proj" {
+  name = "my-test-project"
+  description = "This is a test project"
+}
+
+resource "doppler_environment" "ci" {
+  project = doppler_project.test_proj.name
+  slug = "ci"
+  name = "CI-CD"
+}
+
+resource "doppler_config" "ci_github" {
+  project = doppler_project.test_proj.name
+  environment = doppler_environment.ci.slug
+  name = "ci_github"
+}
+
+resource "doppler_service_token" "ci_github_token" {
+  project = doppler_project.test_proj.name
+  config = doppler_config.ci_github.name
+  name = "test token"
+  access = "read"
 }
 ```
 

@@ -59,7 +59,7 @@ func isSuccess(statusCode int) bool {
 	return (statusCode >= 200 && statusCode <= 299) || (statusCode >= 300 && statusCode <= 399)
 }
 
-func (client APIClient) GetRequest(ctx context.Context, path string, params []QueryParam) (*APIResponse, *APIError) {
+func (client APIClient) GetRequest(ctx context.Context, path string, params []QueryParam) (*APIResponse, error) {
 	url := fmt.Sprintf("%s%s", client.Host, path)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -69,7 +69,7 @@ func (client APIClient) GetRequest(ctx context.Context, path string, params []Qu
 	return client.PerformRequest(req, params)
 }
 
-func (client APIClient) PostRequest(ctx context.Context, path string, params []QueryParam, body []byte) (*APIResponse, *APIError) {
+func (client APIClient) PostRequest(ctx context.Context, path string, params []QueryParam, body []byte) (*APIResponse, error) {
 	url := fmt.Sprintf("%s%s", client.Host, path)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
 	if err != nil {
@@ -79,7 +79,7 @@ func (client APIClient) PostRequest(ctx context.Context, path string, params []Q
 	return client.PerformRequest(req, params)
 }
 
-func (client APIClient) PutRequest(ctx context.Context, path string, params []QueryParam, body []byte) (*APIResponse, *APIError) {
+func (client APIClient) PutRequest(ctx context.Context, path string, params []QueryParam, body []byte) (*APIResponse, error) {
 	url := fmt.Sprintf("%s%s", client.Host, path)
 	req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewReader(body))
 	if err != nil {
@@ -89,9 +89,9 @@ func (client APIClient) PutRequest(ctx context.Context, path string, params []Qu
 	return client.PerformRequest(req, params)
 }
 
-func (client APIClient) DeleteRequest(ctx context.Context, path string, params []QueryParam) (*APIResponse, *APIError) {
+func (client APIClient) DeleteRequest(ctx context.Context, path string, params []QueryParam, body []byte) (*APIResponse, error) {
 	url := fmt.Sprintf("%s%s", client.Host, path)
-	req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "DELETE", url, bytes.NewReader(body))
 	if err != nil {
 		return nil, &APIError{Err: err, Message: "Unable to form request"}
 	}
@@ -99,7 +99,7 @@ func (client APIClient) DeleteRequest(ctx context.Context, path string, params [
 	return client.PerformRequest(req, params)
 }
 
-func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (*APIResponse, *APIError) {
+func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (*APIResponse, error) {
 	httpClient := &http.Client{Timeout: 10 * time.Second}
 
 	userAgent := fmt.Sprintf("terraform-provider-doppler/%s", ProviderVersion)
@@ -158,7 +158,9 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 	return response, nil
 }
 
-func (client APIClient) GetComputedSecrets(ctx context.Context, project string, config string) ([]ComputedSecret, *APIError) {
+// Secrets
+
+func (client APIClient) GetComputedSecrets(ctx context.Context, project string, config string) ([]ComputedSecret, error) {
 	var params []QueryParam
 	if project != "" {
 		params = append(params, QueryParam{Key: "project", Value: project})
@@ -177,7 +179,7 @@ func (client APIClient) GetComputedSecrets(ctx context.Context, project string, 
 	return result, nil
 }
 
-func (client APIClient) GetSecret(ctx context.Context, project string, config string, secretName string) (*Secret, *APIError) {
+func (client APIClient) GetSecret(ctx context.Context, project string, config string, secretName string) (*Secret, error) {
 	var params []QueryParam
 	if project != "" {
 		params = append(params, QueryParam{Key: "project", Value: project})
@@ -198,7 +200,7 @@ func (client APIClient) GetSecret(ctx context.Context, project string, config st
 	return &result, nil
 }
 
-func (client APIClient) UpdateSecrets(ctx context.Context, project string, config string, secrets []RawSecret) *APIError {
+func (client APIClient) UpdateSecrets(ctx context.Context, project string, config string, secrets []RawSecret) error {
 	secretsPayload := map[string]interface{}{}
 	for _, secret := range secrets {
 		if secret.Value != nil {
@@ -221,6 +223,306 @@ func (client APIClient) UpdateSecrets(ctx context.Context, project string, confi
 		return &APIError{Err: jsonErr, Message: "Unable to parse secrets"}
 	}
 	_, err := client.PostRequest(ctx, "/v3/configs/config/secrets", []QueryParam{}, body)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Projects
+
+func (client APIClient) GetProject(ctx context.Context, name string) (*Project, error) {
+	params := []QueryParam{
+		{Key: "project", Value: name},
+	}
+	response, err := client.GetRequest(ctx, "/v3/projects/project", params)
+	if err != nil {
+		return nil, err
+	}
+	var result ProjectResponse
+	jsonErr := json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse project"}
+	}
+	return &result.Project, nil
+}
+
+func (client APIClient) CreateProject(ctx context.Context, name string, description string) (*Project, error) {
+	payload := map[string]interface{}{
+		"name":                        name,
+		"create_default_environments": false,
+	}
+	if description != "" {
+		payload["description"] = description
+	}
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize project"}
+	}
+	response, err := client.PostRequest(ctx, "/v3/projects", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ProjectResponse
+	jsonErr = json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse project"}
+	}
+	return &result.Project, nil
+}
+
+func (client APIClient) UpdateProject(ctx context.Context, currentName string, newName string, description string) (*Project, error) {
+	payload := map[string]interface{}{
+		"project":     currentName,
+		"name":        newName,
+		"description": description,
+	}
+
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize project"}
+	}
+	response, err := client.PostRequest(ctx, "/v3/projects/project", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ProjectResponse
+	jsonErr = json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse project"}
+	}
+	return &result.Project, nil
+}
+
+func (client APIClient) DeleteProject(ctx context.Context, name string) error {
+	payload := map[string]interface{}{
+		"project": name,
+	}
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return &APIError{Err: jsonErr, Message: "Unable to serialize project"}
+	}
+	_, err := client.DeleteRequest(ctx, "/v3/projects/project", []QueryParam{}, body)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Environments
+
+func (client APIClient) GetEnvironment(ctx context.Context, project string, name string) (*Environment, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+		{Key: "environment", Value: name},
+	}
+	response, err := client.GetRequest(ctx, "/v3/environments/environment", params)
+	if err != nil {
+		return nil, err
+	}
+	var result EnvironmentResponse
+	jsonErr := json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse environment"}
+	}
+	return &result.Environment, nil
+}
+
+func (client APIClient) CreateEnvironment(ctx context.Context, project string, slug string, name string) (*Environment, error) {
+	payload := map[string]interface{}{
+		"project": project,
+		"name":    name,
+		"slug":    slug,
+	}
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize environment"}
+	}
+	response, err := client.PostRequest(ctx, "/v3/environments", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result EnvironmentResponse
+	jsonErr = json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse environment"}
+	}
+	return &result.Environment, nil
+}
+
+func (client APIClient) RenameEnvironment(ctx context.Context, project string, currentSlug string, newSlug string, newName string) (*Environment, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+		{Key: "environment", Value: currentSlug},
+	}
+	payload := map[string]interface{}{
+		"slug": newSlug,
+		"name": newName,
+	}
+
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize environment"}
+	}
+	response, err := client.PutRequest(ctx, "/v3/environments/environment", params, body)
+	if err != nil {
+		return nil, err
+	}
+	var result EnvironmentResponse
+	jsonErr = json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse project"}
+	}
+	return &result.Environment, nil
+}
+
+func (client APIClient) DeleteEnvironment(ctx context.Context, project string, slug string) error {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+		{Key: "environment", Value: slug},
+	}
+	_, err := client.DeleteRequest(ctx, "/v3/environments/environment", params, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Configs
+
+func (client APIClient) GetConfig(ctx context.Context, project string, name string) (*Config, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+		{Key: "config", Value: name},
+	}
+	response, err := client.GetRequest(ctx, "/v3/configs/config", params)
+	if err != nil {
+		return nil, err
+	}
+	var result ConfigResponse
+	jsonErr := json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse config"}
+	}
+	return &result.Config, nil
+}
+
+func (client APIClient) CreateConfig(ctx context.Context, project string, environment string, name string) (*Config, error) {
+	payload := map[string]interface{}{
+		"project":     project,
+		"environment": environment,
+		"name":        name,
+	}
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize config"}
+	}
+	response, err := client.PostRequest(ctx, "/v3/configs", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ConfigResponse
+	jsonErr = json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse config"}
+	}
+	return &result.Config, nil
+}
+
+func (client APIClient) RenameConfig(ctx context.Context, project string, currentName string, newName string) (*Config, error) {
+	payload := map[string]interface{}{
+		"project": project,
+		"config":  currentName,
+		"name":    newName,
+	}
+
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize config"}
+	}
+	response, err := client.PostRequest(ctx, "/v3/configs/config", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ConfigResponse
+	jsonErr = json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse config"}
+	}
+	return &result.Config, nil
+}
+
+func (client APIClient) DeleteConfig(ctx context.Context, project string, name string) error {
+	payload := map[string]interface{}{
+		"project": project,
+		"config":  name,
+	}
+
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return &APIError{Err: jsonErr, Message: "Unable to serialize config"}
+	}
+	_, err := client.DeleteRequest(ctx, "/v3/configs/config", []QueryParam{}, body)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Service Tokens
+
+func (client APIClient) GetServiceTokens(ctx context.Context, project string, config string) ([]ServiceToken, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+		{Key: "config", Value: config},
+	}
+	response, err := client.GetRequest(ctx, "/v3/configs/config/tokens", params)
+	if err != nil {
+		return nil, err
+	}
+	var result ServiceTokenListResponse
+	jsonErr := json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse service tokens"}
+	}
+	return result.ServiceTokens, nil
+}
+
+func (client APIClient) CreateServiceToken(ctx context.Context, project string, config string, access string, name string) (*ServiceToken, error) {
+	payload := map[string]interface{}{
+		"project": project,
+		"config":  config,
+		"access":  access,
+		"name":    name,
+	}
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize service token"}
+	}
+	response, err := client.PostRequest(ctx, "/v3/configs/config/tokens", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ServiceTokenResponse
+	jsonErr = json.Unmarshal(response.Body, &result)
+	if jsonErr != nil {
+		return nil, &APIError{Err: jsonErr, Message: "Unable to parse service token"}
+	}
+	return &result.ServiceToken, nil
+}
+
+func (client APIClient) DeleteServiceToken(ctx context.Context, project string, config string, slug string) error {
+	payload := map[string]interface{}{
+		"project": project,
+		"config":  config,
+		"slug":    slug,
+	}
+
+	body, jsonErr := json.Marshal(payload)
+	if jsonErr != nil {
+		return &APIError{Err: jsonErr, Message: "Unable to serialize config"}
+	}
+	_, err := client.DeleteRequest(ctx, "/v3/configs/config/tokens/token", []QueryParam{}, body)
 	if err != nil {
 		return err
 	}
