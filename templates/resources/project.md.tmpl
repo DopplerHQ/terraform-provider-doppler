@@ -5,9 +5,7 @@ description: |-
 	Manage a Doppler project.
 ---
 
-# doppler_project (Resource, Pre-Release)
-
-**This resource is in pre-release and is not intended to be used in production.**
+# doppler_project (Resource)
 
 Manage a Doppler project.
 
