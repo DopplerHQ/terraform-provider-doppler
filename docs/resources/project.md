@@ -14,7 +14,7 @@ Manage a Doppler project.
 ```terraform
 resource "doppler_project" "backend" {
   name = "backend"
-	description = "The main backend project"
+  description = "The main backend project"
 }
 ```
 
