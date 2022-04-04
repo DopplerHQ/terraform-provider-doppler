@@ -5,9 +5,7 @@ description: |-
 	Manage a Doppler service_token.
 ---
 
-# doppler_service_token (Resource, Pre-Release)
-
-**This resource is in pre-release and is not intended to be used in production.**
+# doppler_service_token (Resource)
 
 Manage a Doppler service token.
 

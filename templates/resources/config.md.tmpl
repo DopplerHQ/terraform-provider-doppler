@@ -5,9 +5,7 @@ description: |-
 	Manage a Doppler config.
 ---
 
-# doppler_config (Resource, Pre-Release)
-
-**This resource is in pre-release and is not intended to be used in production.**
+# doppler_config (Resource)
 
 Manage a Doppler config.
 

@@ -5,9 +5,7 @@ description: |-
 	Manage a single Doppler secret in a config.
 ---
 
-# doppler_secret (Resource, Pre-Release)
-
-**This resource is in pre-release and is not intended to be used in production.**
+# doppler_secret (Resource)
 
 Manage a single Doppler secret in a config.
 
