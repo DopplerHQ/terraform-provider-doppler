@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -33,19 +34,23 @@ type APIResponse struct {
 }
 
 type APIError struct {
-	Err     error
-	Message string
+	Err         error
+	Message     string
+	IsRetryable bool
 }
 
 type ErrorResponse struct {
 	Messages []string
 	Success  bool
+	Data     map[string]interface{}
 }
 
 type QueryParam struct {
 	Key   string
 	Value string
 }
+
+const MAX_RETRIES = 10
 
 func (e *APIError) Error() string {
 	message := fmt.Sprintf("Doppler Error: %s", e.Message)
@@ -59,44 +64,28 @@ func isSuccess(statusCode int) bool {
 	return (statusCode >= 200 && statusCode <= 299) || (statusCode >= 300 && statusCode <= 399)
 }
 
-func (client APIClient) GetRequest(ctx context.Context, path string, params []QueryParam) (*APIResponse, error) {
-	url := fmt.Sprintf("%s%s", client.Host, path)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, &APIError{Err: err, Message: "Unable to form request"}
+func (client APIClient) PerformRequestWithRetry(ctx context.Context, method string, path string, params []QueryParam, body []byte) (*APIResponse, error) {
+	var lastErr error
+	for i := 0; i < MAX_RETRIES; i++ {
+		url := fmt.Sprintf("%s%s", client.Host, path)
+		var bodyReader io.Reader
+		if body != nil {
+			bodyReader = bytes.NewReader(body)
+		}
+		req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
+		if err != nil {
+			return nil, &APIError{Err: err, Message: "Unable to form request"}
+		}
+
+		response, err := client.PerformRequest(req, params)
+		lastErr = err
+		if err == nil {
+			return response, nil
+		} else if apiError, isAPIError := err.(*APIError); !isAPIError || !apiError.IsRetryable {
+			return nil, err
+		}
 	}
-
-	return client.PerformRequest(req, params)
-}
-
-func (client APIClient) PostRequest(ctx context.Context, path string, params []QueryParam, body []byte) (*APIResponse, error) {
-	url := fmt.Sprintf("%s%s", client.Host, path)
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
-	if err != nil {
-		return nil, &APIError{Err: err, Message: "Unable to form request"}
-	}
-
-	return client.PerformRequest(req, params)
-}
-
-func (client APIClient) PutRequest(ctx context.Context, path string, params []QueryParam, body []byte) (*APIResponse, error) {
-	url := fmt.Sprintf("%s%s", client.Host, path)
-	req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewReader(body))
-	if err != nil {
-		return nil, &APIError{Err: err, Message: "Unable to form request"}
-	}
-
-	return client.PerformRequest(req, params)
-}
-
-func (client APIClient) DeleteRequest(ctx context.Context, path string, params []QueryParam, body []byte) (*APIResponse, error) {
-	url := fmt.Sprintf("%s%s", client.Host, path)
-	req, err := http.NewRequestWithContext(ctx, "DELETE", url, bytes.NewReader(body))
-	if err != nil {
-		return nil, &APIError{Err: err, Message: "Unable to form request"}
-	}
-
-	return client.PerformRequest(req, params)
+	return nil, lastErr
 }
 
 func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (*APIResponse, error) {
@@ -148,7 +137,11 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 			if err != nil {
 				return response, &APIError{Err: err, Message: "Unable to load response"}
 			}
-			return response, &APIError{Err: nil, Message: strings.Join(errResponse.Messages, "\n")}
+			return response, &APIError{
+				Err:         nil,
+				Message:     strings.Join(errResponse.Messages, "\n"),
+				IsRetryable: errResponse.Data["isRetryable"] == true,
+			}
 		}
 		return nil, &APIError{Err: fmt.Errorf("%d status code; %d bytes", r.StatusCode, len(body)), Message: "Unable to load response"}
 	}
@@ -168,7 +161,7 @@ func (client APIClient) GetComputedSecrets(ctx context.Context, project string, 
 	if config != "" {
 		params = append(params, QueryParam{Key: "config", Value: config})
 	}
-	response, err := client.GetRequest(ctx, "/v3/configs/config/secrets/download", params)
+	response, err := client.PerformRequestWithRetry(ctx, "GET", "/v3/configs/config/secrets/download", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +181,7 @@ func (client APIClient) GetSecret(ctx context.Context, project string, config st
 		params = append(params, QueryParam{Key: "config", Value: config})
 	}
 	params = append(params, QueryParam{Key: "name", Value: secretName})
-	response, err := client.GetRequest(ctx, "/v3/configs/config/secret", params)
+	response, err := client.PerformRequestWithRetry(ctx, "GET", "/v3/configs/config/secret", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +215,7 @@ func (client APIClient) UpdateSecrets(ctx context.Context, project string, confi
 	if jsonErr != nil {
 		return &APIError{Err: jsonErr, Message: "Unable to parse secrets"}
 	}
-	_, err := client.PostRequest(ctx, "/v3/configs/config/secrets", []QueryParam{}, body)
+	_, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/configs/config/secrets", []QueryParam{}, body)
 	if err != nil {
 		return err
 	}
@@ -235,7 +228,7 @@ func (client APIClient) GetProject(ctx context.Context, name string) (*Project, 
 	params := []QueryParam{
 		{Key: "project", Value: name},
 	}
-	response, err := client.GetRequest(ctx, "/v3/projects/project", params)
+	response, err := client.PerformRequestWithRetry(ctx, "GET", "/v3/projects/project", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +252,7 @@ func (client APIClient) CreateProject(ctx context.Context, name string, descript
 	if jsonErr != nil {
 		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize project"}
 	}
-	response, err := client.PostRequest(ctx, "/v3/projects", []QueryParam{}, body)
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/projects", []QueryParam{}, body)
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +275,7 @@ func (client APIClient) UpdateProject(ctx context.Context, currentName string, n
 	if jsonErr != nil {
 		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize project"}
 	}
-	response, err := client.PostRequest(ctx, "/v3/projects/project", []QueryParam{}, body)
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/projects/project", []QueryParam{}, body)
 	if err != nil {
 		return nil, err
 	}
@@ -302,7 +295,7 @@ func (client APIClient) DeleteProject(ctx context.Context, name string) error {
 	if jsonErr != nil {
 		return &APIError{Err: jsonErr, Message: "Unable to serialize project"}
 	}
-	_, err := client.DeleteRequest(ctx, "/v3/projects/project", []QueryParam{}, body)
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", "/v3/projects/project", []QueryParam{}, body)
 	if err != nil {
 		return err
 	}
@@ -316,7 +309,7 @@ func (client APIClient) GetEnvironment(ctx context.Context, project string, name
 		{Key: "project", Value: project},
 		{Key: "environment", Value: name},
 	}
-	response, err := client.GetRequest(ctx, "/v3/environments/environment", params)
+	response, err := client.PerformRequestWithRetry(ctx, "GET", "/v3/environments/environment", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +331,7 @@ func (client APIClient) CreateEnvironment(ctx context.Context, project string, s
 	if jsonErr != nil {
 		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize environment"}
 	}
-	response, err := client.PostRequest(ctx, "/v3/environments", []QueryParam{}, body)
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/environments", []QueryParam{}, body)
 	if err != nil {
 		return nil, err
 	}
@@ -364,7 +357,7 @@ func (client APIClient) RenameEnvironment(ctx context.Context, project string, c
 	if jsonErr != nil {
 		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize environment"}
 	}
-	response, err := client.PutRequest(ctx, "/v3/environments/environment", params, body)
+	response, err := client.PerformRequestWithRetry(ctx, "PUT", "/v3/environments/environment", params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -381,7 +374,7 @@ func (client APIClient) DeleteEnvironment(ctx context.Context, project string, s
 		{Key: "project", Value: project},
 		{Key: "environment", Value: slug},
 	}
-	_, err := client.DeleteRequest(ctx, "/v3/environments/environment", params, nil)
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", "/v3/environments/environment", params, nil)
 	if err != nil {
 		return err
 	}
@@ -395,7 +388,7 @@ func (client APIClient) GetConfig(ctx context.Context, project string, name stri
 		{Key: "project", Value: project},
 		{Key: "config", Value: name},
 	}
-	response, err := client.GetRequest(ctx, "/v3/configs/config", params)
+	response, err := client.PerformRequestWithRetry(ctx, "GET", "/v3/configs/config", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -417,7 +410,7 @@ func (client APIClient) CreateConfig(ctx context.Context, project string, enviro
 	if jsonErr != nil {
 		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize config"}
 	}
-	response, err := client.PostRequest(ctx, "/v3/configs", []QueryParam{}, body)
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/configs", []QueryParam{}, body)
 	if err != nil {
 		return nil, err
 	}
@@ -440,7 +433,7 @@ func (client APIClient) RenameConfig(ctx context.Context, project string, curren
 	if jsonErr != nil {
 		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize config"}
 	}
-	response, err := client.PostRequest(ctx, "/v3/configs/config", []QueryParam{}, body)
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/configs/config", []QueryParam{}, body)
 	if err != nil {
 		return nil, err
 	}
@@ -462,7 +455,7 @@ func (client APIClient) DeleteConfig(ctx context.Context, project string, name s
 	if jsonErr != nil {
 		return &APIError{Err: jsonErr, Message: "Unable to serialize config"}
 	}
-	_, err := client.DeleteRequest(ctx, "/v3/configs/config", []QueryParam{}, body)
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", "/v3/configs/config", []QueryParam{}, body)
 	if err != nil {
 		return err
 	}
@@ -476,7 +469,7 @@ func (client APIClient) GetServiceTokens(ctx context.Context, project string, co
 		{Key: "project", Value: project},
 		{Key: "config", Value: config},
 	}
-	response, err := client.GetRequest(ctx, "/v3/configs/config/tokens", params)
+	response, err := client.PerformRequestWithRetry(ctx, "GET", "/v3/configs/config/tokens", params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -499,7 +492,7 @@ func (client APIClient) CreateServiceToken(ctx context.Context, project string, 
 	if jsonErr != nil {
 		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize service token"}
 	}
-	response, err := client.PostRequest(ctx, "/v3/configs/config/tokens", []QueryParam{}, body)
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/configs/config/tokens", []QueryParam{}, body)
 	if err != nil {
 		return nil, err
 	}
@@ -522,7 +515,7 @@ func (client APIClient) DeleteServiceToken(ctx context.Context, project string, 
 	if jsonErr != nil {
 		return &APIError{Err: jsonErr, Message: "Unable to serialize config"}
 	}
-	_, err := client.DeleteRequest(ctx, "/v3/configs/config/tokens/token", []QueryParam{}, body)
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", "/v3/configs/config/tokens/token", []QueryParam{}, body)
 	if err != nil {
 		return err
 	}
