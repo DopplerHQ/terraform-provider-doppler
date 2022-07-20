@@ -8,7 +8,7 @@ builds:
   flags:
     - -trimpath
   ldflags:
-    - '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X terraform-provider-doppler/doppler.ProviderVersion={{.Version}}'
+    - '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X github.com/DopplerHQ/terraform-provider-doppler/doppler.ProviderVersion={{.Version}}'
   goos:
     - freebsd
     - windows

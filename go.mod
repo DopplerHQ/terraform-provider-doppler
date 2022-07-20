@@ -1,4 +1,4 @@
-module terraform-provider-doppler
+module github.com/DopplerHQ/terraform-provider-doppler
 
 go 1.16
 
