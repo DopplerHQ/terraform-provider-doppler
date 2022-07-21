@@ -11,7 +11,7 @@ default: install
 
 build:
 	go build \
-		-ldflags="-X terraform-provider-doppler/doppler.ProviderVersion=dev-$(shell git rev-parse --abbrev-ref HEAD)-$(shell git rev-parse --short HEAD)" \
+		-ldflags="-X github.com/DopplerHQ/terraform-provider-doppler/doppler.ProviderVersion=dev-$(shell git rev-parse --abbrev-ref HEAD)-$(shell git rev-parse --short HEAD)" \
 		-o ${BINARY}
 
 install: build
