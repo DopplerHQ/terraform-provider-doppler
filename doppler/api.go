@@ -9,7 +9,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -34,9 +36,9 @@ type APIResponse struct {
 }
 
 type APIError struct {
-	Err         error
-	Message     string
-	IsRetryable bool
+	Err        error
+	Message    string
+	RetryAfter *time.Duration
 }
 
 type ErrorResponse struct {
@@ -64,6 +66,11 @@ func isSuccess(statusCode int) bool {
 	return (statusCode >= 200 && statusCode <= 299) || (statusCode >= 300 && statusCode <= 399)
 }
 
+func getSecondsDuration(seconds int64) *time.Duration {
+	duration := time.Duration(seconds) * time.Second
+	return &duration
+}
+
 func (client APIClient) PerformRequestWithRetry(ctx context.Context, method string, path string, params []QueryParam, body []byte) (*APIResponse, error) {
 	var lastErr error
 	for i := 0; i < MAX_RETRIES; i++ {
@@ -81,9 +88,12 @@ func (client APIClient) PerformRequestWithRetry(ctx context.Context, method stri
 		lastErr = err
 		if err == nil {
 			return response, nil
-		} else if apiError, isAPIError := err.(*APIError); !isAPIError || !apiError.IsRetryable {
+		}
+		apiError, isAPIError := err.(*APIError)
+		if !isAPIError || apiError.RetryAfter == nil {
 			return nil, err
 		}
+		time.Sleep(*apiError.RetryAfter)
 	}
 	return nil, lastErr
 }
@@ -120,7 +130,12 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 
 	r, err := httpClient.Do(req)
 	if err != nil {
-		return nil, &APIError{Err: err, Message: "Unable to load response"}
+		var retryAfter *time.Duration
+		if e, ok := err.(net.Error); ok && e.Timeout() {
+			retryAfter = getSecondsDuration(1)
+		}
+
+		return nil, &APIError{Err: err, Message: "Unable to load response", RetryAfter: retryAfter}
 	}
 	defer r.Body.Close()
 
@@ -137,10 +152,29 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 			if err != nil {
 				return response, &APIError{Err: err, Message: "Unable to load response"}
 			}
+
+			var retryAfter *time.Duration
+			if errResponse.Data["isRetryable"] == true {
+				// Retry immediately
+				retryAfter = getSecondsDuration(0)
+			} else if r.StatusCode == 429 {
+				retryAfterStr := r.Header.Get("retry-after")
+				retryAfterInt, retryAfterErr := strconv.ParseInt(retryAfterStr, 10, 64)
+				if retryAfterErr == nil {
+					// Parse successful `retry-after` header result
+					retryAfter = getSecondsDuration(retryAfterInt)
+				} else {
+					// There was some issue parsing, this shouldn't happen but retry after 1 second
+					retryAfter = getSecondsDuration(1)
+				}
+			} else {
+				// Otherwise, do not retry
+				retryAfter = nil
+			}
 			return response, &APIError{
-				Err:         nil,
-				Message:     strings.Join(errResponse.Messages, "\n"),
-				IsRetryable: errResponse.Data["isRetryable"] == true,
+				Err:        nil,
+				Message:    strings.Join(errResponse.Messages, "\n"),
+				RetryAfter: retryAfter,
 			}
 		}
 		return nil, &APIError{Err: fmt.Errorf("%d status code; %d bytes", r.StatusCode, len(body)), Message: "Unable to load response"}
