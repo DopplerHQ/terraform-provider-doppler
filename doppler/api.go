@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -129,7 +130,12 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 
 	r, err := httpClient.Do(req)
 	if err != nil {
-		return nil, &APIError{Err: err, Message: "Unable to load response"}
+		var retryAfter *time.Duration
+		if e, ok := err.(net.Error); ok && e.Timeout() {
+			retryAfter = getSecondsDuration(1)
+		}
+
+		return nil, &APIError{Err: err, Message: "Unable to load response", RetryAfter: retryAfter}
 	}
 	defer r.Body.Close()
 
