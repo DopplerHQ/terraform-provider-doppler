@@ -93,7 +93,8 @@ func resourceServiceTokenRead(ctx context.Context, d *schema.ResourceData, m int
 	var token *ServiceToken
 	for _, searchToken := range tokens {
 		if searchToken.Slug == slug {
-			token = &searchToken
+			tokenRef := searchToken
+			token = &tokenRef
 		}
 	}
 
