@@ -89,7 +89,12 @@ func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
-	setErr := d.Set("value", secret.Value.Raw)
+	setErr := d.Set("name", secret.Name)
+	if setErr != nil {
+		return diag.FromErr(setErr)
+	}
+
+	setErr = d.Set("value", secret.Value.Raw)
 	if setErr != nil {
 		return diag.FromErr(setErr)
 	}

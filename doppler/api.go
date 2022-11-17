@@ -224,7 +224,20 @@ func (client APIClient) GetSecret(ctx context.Context, project string, config st
 	if jsonErr != nil {
 		return nil, &APIError{Err: jsonErr, Message: "Unable to parse secret"}
 	}
-	return &result, nil
+
+	// If you fetch an individual secret that doesn't exist from our API, the
+	// result you get is a valid payload showing the secret name you specified
+	// with Raw and Computed values of null. In Terraform's case, this means
+	// that once a secret is created, it will never notice that it's missing if
+	// you're using `ignore_changes = [ value ]` because the secret will always
+	// be returned with nil values. This forces it to return a truly empty secret
+	// if Raw and Computed values are empty string.
+	if result.Value.Raw != "" && result.Value.Computed != "" {
+		return &result, nil
+	} else {
+		var emptyResult Secret
+		return &emptyResult, nil
+	}
 }
 
 func (client APIClient) UpdateSecrets(ctx context.Context, project string, config string, secrets []RawSecret) error {
