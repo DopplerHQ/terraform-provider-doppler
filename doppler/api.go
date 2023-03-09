@@ -99,7 +99,7 @@ func (client APIClient) PerformRequestWithRetry(ctx context.Context, method stri
 }
 
 func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (*APIResponse, error) {
-	httpClient := &http.Client{Timeout: 10 * time.Second}
+	httpClient := &http.Client{Timeout: 30 * time.Second}
 
 	userAgent := fmt.Sprintf("terraform-provider-doppler/%s", ProviderVersion)
 	req.Header.Set("user-agent", userAgent)
