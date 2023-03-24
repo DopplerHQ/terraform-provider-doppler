@@ -416,6 +416,63 @@ func (client APIClient) DeleteIntegration(ctx context.Context, name string) erro
 	return nil
 }
 
+// Syncs
+
+func (client APIClient) GetSync(ctx context.Context, config, project, sync string) (*Sync, error) {
+	params := []QueryParam{
+		{Key: "config", Value: config},
+		{Key: "project", Value: project},
+		{Key: "sync", Value: sync},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", "/v3/configs/config/syncs/sync", params, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result SyncResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse sync"}
+	}
+	return &result.Sync, nil
+}
+
+func (client APIClient) CreateSync(ctx context.Context, data SyncData, config, project, integration string) (*Sync, error) {
+	params := []QueryParam{
+		{Key: "config", Value: config},
+		{Key: "project", Value: project},
+	}
+	payload := map[string]interface{}{
+		"integration": integration,
+		"data":        data,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize sync"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/configs/config/syncs", params, body)
+	if err != nil {
+		return nil, err
+	}
+	var result SyncResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse sync"}
+	}
+	return &result.Sync, nil
+}
+
+func (client APIClient) DeleteSync(ctx context.Context, slug string, deleteTarget bool, config, project string) error {
+	params := []QueryParam{
+		{Key: "config", Value: config},
+		{Key: "project", Value: project},
+		{Key: "sync", Value: slug},
+		{Key: "delete_from_target", Value: strconv.FormatBool(deleteTarget)},
+	}
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", "/v3/configs/config/syncs/sync", params, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Environments
 
 func (client APIClient) GetEnvironment(ctx context.Context, project string, name string) (*Environment, error) {
