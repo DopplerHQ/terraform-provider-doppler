@@ -66,7 +66,7 @@ func isSuccess(statusCode int) bool {
 	return (statusCode >= 200 && statusCode <= 299) || (statusCode >= 300 && statusCode <= 399)
 }
 
-func getSecondsDuration(seconds int64) *time.Duration {
+func getSecondsDuration(seconds int) *time.Duration {
 	duration := time.Duration(seconds) * time.Second
 	return &duration
 }
@@ -156,12 +156,15 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 			if errResponse.Data["isRetryable"] == true {
 				// Retry immediately
 				retryAfter = getSecondsDuration(0)
+			} else if retryableAfterSec, ok := errResponse.Data["isRetryableAfterSec"].(float64); ok {
+				// Retry after specified time
+				retryAfter = getSecondsDuration(int(retryableAfterSec))
 			} else if r.StatusCode == 429 {
 				retryAfterStr := r.Header.Get("retry-after")
-				retryAfterInt, retryAfterErr := strconv.ParseInt(retryAfterStr, 10, 64)
-				if retryAfterErr == nil {
+				retryAfterInt, err := strconv.ParseInt(retryAfterStr, 10, 64)
+				if err == nil {
 					// Parse successful `retry-after` header result
-					retryAfter = getSecondsDuration(retryAfterInt)
+					retryAfter = getSecondsDuration(int(retryAfterInt))
 				} else {
 					// There was some issue parsing, this shouldn't happen but retry after 1 second
 					retryAfter = getSecondsDuration(1)
