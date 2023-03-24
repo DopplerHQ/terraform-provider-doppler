@@ -87,14 +87,12 @@ func resourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, m inte
 		return diag.FromErr(err)
 	}
 
-	setErr := d.Set("slug", environment.Slug)
-	if setErr != nil {
-		return diag.FromErr(setErr)
+	if err = d.Set("slug", environment.Slug); err != nil {
+		return diag.FromErr(err)
 	}
 
-	setErr = d.Set("name", environment.Name)
-	if setErr != nil {
-		return diag.FromErr(setErr)
+	if err = d.Set("name", environment.Name); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return diags
@@ -109,8 +107,7 @@ func resourceEnvironmentDelete(ctx context.Context, d *schema.ResourceData, m in
 		return diag.FromErr(err)
 	}
 
-	err = client.DeleteEnvironment(ctx, project, slug)
-	if err != nil {
+	if err = client.DeleteEnvironment(ctx, project, slug); err != nil {
 		return diag.FromErr(err)
 	}
 

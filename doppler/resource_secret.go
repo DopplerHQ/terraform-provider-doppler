@@ -60,8 +60,7 @@ func resourceSecretUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	value := d.Get("value").(string)
 	if value != "" {
 		newSecret := RawSecret{Name: name, Value: &value}
-		err := client.UpdateSecrets(ctx, project, config, []RawSecret{newSecret})
-		if err != nil {
+		if err := client.UpdateSecrets(ctx, project, config, []RawSecret{newSecret}); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -89,14 +88,12 @@ func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
-	setErr := d.Set("value", secret.Value.Raw)
-	if setErr != nil {
-		return diag.FromErr(setErr)
+	if err = d.Set("value", secret.Value.Raw); err != nil {
+		return diag.FromErr(err)
 	}
 
-	setErr = d.Set("computed", secret.Value.Computed)
-	if setErr != nil {
-		return diag.FromErr(setErr)
+	if err = d.Set("computed", secret.Value.Computed); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return diags
@@ -118,8 +115,7 @@ func resourceSecretDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	name := tokens[2]
 
 	newSecret := RawSecret{Name: name, Value: nil}
-	err := client.UpdateSecrets(ctx, project, config, []RawSecret{newSecret})
-	if err != nil {
+	if err := client.UpdateSecrets(ctx, project, config, []RawSecret{newSecret}); err != nil {
 		return diag.FromErr(err)
 	}
 

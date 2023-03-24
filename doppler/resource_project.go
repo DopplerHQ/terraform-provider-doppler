@@ -73,14 +73,12 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 		return diag.FromErr(err)
 	}
 
-	setErr := d.Set("name", project.Name)
-	if setErr != nil {
-		return diag.FromErr(setErr)
+	if err = d.Set("name", project.Name); err != nil {
+		return diag.FromErr(err)
 	}
 
-	setErr = d.Set("description", project.Description)
-	if setErr != nil {
-		return diag.FromErr(setErr)
+	if err = d.Set("description", project.Description); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return diags
@@ -92,8 +90,7 @@ func resourceProjectDelete(ctx context.Context, d *schema.ResourceData, m interf
 	var diags diag.Diagnostics
 
 	name := d.Id()
-	err := client.DeleteProject(ctx, name)
-	if err != nil {
+	if err := client.DeleteProject(ctx, name); err != nil {
 		return diag.FromErr(err)
 	}
 

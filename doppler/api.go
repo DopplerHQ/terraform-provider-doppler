@@ -148,8 +148,7 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 	if !isSuccess(r.StatusCode) {
 		if contentType := r.Header.Get("content-type"); strings.HasPrefix(contentType, "application/json") {
 			var errResponse ErrorResponse
-			err := json.Unmarshal(body, &errResponse)
-			if err != nil {
+			if err := json.Unmarshal(body, &errResponse); err != nil {
 				return response, &APIError{Err: err, Message: "Unable to load response"}
 			}
 
@@ -199,9 +198,9 @@ func (client APIClient) GetComputedSecrets(ctx context.Context, project string, 
 	if err != nil {
 		return nil, err
 	}
-	result, modelErr := ParseComputedSecrets(response.Body)
-	if modelErr != nil {
-		return nil, &APIError{Err: modelErr, Message: "Unable to parse secrets"}
+	result, err := ParseComputedSecrets(response.Body)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse secrets"}
 	}
 	return result, nil
 }
@@ -220,9 +219,8 @@ func (client APIClient) GetSecret(ctx context.Context, project string, config st
 		return nil, err
 	}
 	var result Secret
-	jsonErr := json.Unmarshal(response.Body, &result)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to parse secret"}
+	if err := json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse secret"}
 	}
 	return &result, nil
 }
@@ -245,11 +243,11 @@ func (client APIClient) UpdateSecrets(ctx context.Context, project string, confi
 	if config != "" {
 		payload["config"] = config
 	}
-	body, jsonErr := json.Marshal(payload)
-	if jsonErr != nil {
-		return &APIError{Err: jsonErr, Message: "Unable to parse secrets"}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return &APIError{Err: err, Message: "Unable to parse secrets"}
 	}
-	_, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/configs/config/secrets", []QueryParam{}, body)
+	_, err = client.PerformRequestWithRetry(ctx, "POST", "/v3/configs/config/secrets", []QueryParam{}, body)
 	if err != nil {
 		return err
 	}
@@ -267,9 +265,8 @@ func (client APIClient) GetProject(ctx context.Context, name string) (*Project, 
 		return nil, err
 	}
 	var result ProjectResponse
-	jsonErr := json.Unmarshal(response.Body, &result)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to parse project"}
+	if err := json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse project"}
 	}
 	return &result.Project, nil
 }
@@ -282,18 +279,17 @@ func (client APIClient) CreateProject(ctx context.Context, name string, descript
 	if description != "" {
 		payload["description"] = description
 	}
-	body, jsonErr := json.Marshal(payload)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize project"}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize project"}
 	}
 	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/projects", []QueryParam{}, body)
 	if err != nil {
 		return nil, err
 	}
 	var result ProjectResponse
-	jsonErr = json.Unmarshal(response.Body, &result)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to parse project"}
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse project"}
 	}
 	return &result.Project, nil
 }
@@ -305,18 +301,19 @@ func (client APIClient) UpdateProject(ctx context.Context, currentName string, n
 		"description": description,
 	}
 
-	body, jsonErr := json.Marshal(payload)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize project"}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize project"}
 	}
+
 	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/projects/project", []QueryParam{}, body)
 	if err != nil {
 		return nil, err
 	}
+
 	var result ProjectResponse
-	jsonErr = json.Unmarshal(response.Body, &result)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to parse project"}
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse project"}
 	}
 	return &result.Project, nil
 }
@@ -325,17 +322,20 @@ func (client APIClient) DeleteProject(ctx context.Context, name string) error {
 	payload := map[string]interface{}{
 		"project": name,
 	}
-	body, jsonErr := json.Marshal(payload)
-	if jsonErr != nil {
-		return &APIError{Err: jsonErr, Message: "Unable to serialize project"}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return &APIError{Err: err, Message: "Unable to serialize project"}
 	}
-	_, err := client.PerformRequestWithRetry(ctx, "DELETE", "/v3/projects/project", []QueryParam{}, body)
+
+	_, err = client.PerformRequestWithRetry(ctx, "DELETE", "/v3/projects/project", []QueryParam{}, body)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
+// Integrations
 // Environments
 
 func (client APIClient) GetEnvironment(ctx context.Context, project string, name string) (*Environment, error) {
@@ -348,9 +348,8 @@ func (client APIClient) GetEnvironment(ctx context.Context, project string, name
 		return nil, err
 	}
 	var result EnvironmentResponse
-	jsonErr := json.Unmarshal(response.Body, &result)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to parse environment"}
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse environment"}
 	}
 	return &result.Environment, nil
 }
@@ -361,18 +360,19 @@ func (client APIClient) CreateEnvironment(ctx context.Context, project string, s
 		"name":    name,
 		"slug":    slug,
 	}
-	body, jsonErr := json.Marshal(payload)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize environment"}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize environment"}
 	}
+
 	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/environments", []QueryParam{}, body)
 	if err != nil {
 		return nil, err
 	}
+
 	var result EnvironmentResponse
-	jsonErr = json.Unmarshal(response.Body, &result)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to parse environment"}
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse environment"}
 	}
 	return &result.Environment, nil
 }
@@ -387,18 +387,17 @@ func (client APIClient) RenameEnvironment(ctx context.Context, project string, c
 		"name": newName,
 	}
 
-	body, jsonErr := json.Marshal(payload)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize environment"}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize environment"}
 	}
 	response, err := client.PerformRequestWithRetry(ctx, "PUT", "/v3/environments/environment", params, body)
 	if err != nil {
 		return nil, err
 	}
 	var result EnvironmentResponse
-	jsonErr = json.Unmarshal(response.Body, &result)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to parse project"}
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse project"}
 	}
 	return &result.Environment, nil
 }
@@ -427,9 +426,8 @@ func (client APIClient) GetConfig(ctx context.Context, project string, name stri
 		return nil, err
 	}
 	var result ConfigResponse
-	jsonErr := json.Unmarshal(response.Body, &result)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to parse config"}
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse config"}
 	}
 	return &result.Config, nil
 }
@@ -440,18 +438,17 @@ func (client APIClient) CreateConfig(ctx context.Context, project string, enviro
 		"environment": environment,
 		"name":        name,
 	}
-	body, jsonErr := json.Marshal(payload)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize config"}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize config"}
 	}
 	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/configs", []QueryParam{}, body)
 	if err != nil {
 		return nil, err
 	}
 	var result ConfigResponse
-	jsonErr = json.Unmarshal(response.Body, &result)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to parse config"}
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse config"}
 	}
 	return &result.Config, nil
 }
@@ -463,18 +460,17 @@ func (client APIClient) RenameConfig(ctx context.Context, project string, curren
 		"name":    newName,
 	}
 
-	body, jsonErr := json.Marshal(payload)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize config"}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize config"}
 	}
 	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/configs/config", []QueryParam{}, body)
 	if err != nil {
 		return nil, err
 	}
 	var result ConfigResponse
-	jsonErr = json.Unmarshal(response.Body, &result)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to parse config"}
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse config"}
 	}
 	return &result.Config, nil
 }
@@ -485,11 +481,11 @@ func (client APIClient) DeleteConfig(ctx context.Context, project string, name s
 		"config":  name,
 	}
 
-	body, jsonErr := json.Marshal(payload)
-	if jsonErr != nil {
-		return &APIError{Err: jsonErr, Message: "Unable to serialize config"}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return &APIError{Err: err, Message: "Unable to serialize config"}
 	}
-	_, err := client.PerformRequestWithRetry(ctx, "DELETE", "/v3/configs/config", []QueryParam{}, body)
+	_, err = client.PerformRequestWithRetry(ctx, "DELETE", "/v3/configs/config", []QueryParam{}, body)
 	if err != nil {
 		return err
 	}
@@ -508,9 +504,8 @@ func (client APIClient) GetServiceTokens(ctx context.Context, project string, co
 		return nil, err
 	}
 	var result ServiceTokenListResponse
-	jsonErr := json.Unmarshal(response.Body, &result)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to parse service tokens"}
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse service tokens"}
 	}
 	return result.ServiceTokens, nil
 }
@@ -522,18 +517,17 @@ func (client APIClient) CreateServiceToken(ctx context.Context, project string, 
 		"access":  access,
 		"name":    name,
 	}
-	body, jsonErr := json.Marshal(payload)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to serialize service token"}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize service token"}
 	}
 	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/configs/config/tokens", []QueryParam{}, body)
 	if err != nil {
 		return nil, err
 	}
 	var result ServiceTokenResponse
-	jsonErr = json.Unmarshal(response.Body, &result)
-	if jsonErr != nil {
-		return nil, &APIError{Err: jsonErr, Message: "Unable to parse service token"}
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse service token"}
 	}
 	return &result.ServiceToken, nil
 }
@@ -545,11 +539,11 @@ func (client APIClient) DeleteServiceToken(ctx context.Context, project string, 
 		"slug":    slug,
 	}
 
-	body, jsonErr := json.Marshal(payload)
-	if jsonErr != nil {
-		return &APIError{Err: jsonErr, Message: "Unable to serialize config"}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return &APIError{Err: err, Message: "Unable to serialize config"}
 	}
-	_, err := client.PerformRequestWithRetry(ctx, "DELETE", "/v3/configs/config/tokens/token", []QueryParam{}, body)
+	_, err = client.PerformRequestWithRetry(ctx, "DELETE", "/v3/configs/config/tokens/token", []QueryParam{}, body)
 	if err != nil {
 		return err
 	}
