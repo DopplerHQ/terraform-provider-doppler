@@ -68,6 +68,18 @@ type ProjectResponse struct {
 	Project Project `json:"project"`
 }
 
+type IntegrationData = map[string]interface{}
+
+type Integration struct {
+	Slug string `json:"slug"`
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+type IntegrationResponse struct {
+	Integration Integration `json:"integration"`
+}
+
 type Environment struct {
 	Slug      string `json:"slug"`
 	Name      string `json:"name"`

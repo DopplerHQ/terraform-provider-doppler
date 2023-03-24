@@ -339,6 +339,83 @@ func (client APIClient) DeleteProject(ctx context.Context, name string) error {
 }
 
 // Integrations
+
+func (client APIClient) GetIntegration(ctx context.Context, slug string) (*Integration, error) {
+	params := []QueryParam{
+		{Key: "integration", Value: slug},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", "/v3/integrations/integration", params, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result IntegrationResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse integration"}
+	}
+	return &result.Integration, nil
+}
+
+func (client APIClient) CreateIntegration(ctx context.Context, data IntegrationData, name, integType string) (*Integration, error) {
+	payload := map[string]interface{}{
+		"name": name,
+		"type": integType,
+		"data": data,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize integration"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/integrations", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+
+	var result IntegrationResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse integration"}
+	}
+	return &result.Integration, nil
+}
+
+func (client APIClient) UpdateIntegration(ctx context.Context, slug, name string, data IntegrationData) (*Integration, error) {
+	params := []QueryParam{
+		{Key: "integration", Value: slug},
+	}
+
+	payload := map[string]interface{}{}
+	if name != "" {
+		payload["name"] = name
+	}
+	if data != nil {
+		payload["data"] = data
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize integration"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "PUT", "/v3/integrations/integration", params, body)
+	if err != nil {
+		return nil, err
+	}
+	var result IntegrationResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse integration"}
+	}
+	return &result.Integration, nil
+}
+
+func (client APIClient) DeleteIntegration(ctx context.Context, name string) error {
+	params := []QueryParam{
+		{Key: "integration", Value: name},
+	}
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", "/v3/integrations/integration", params, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Environments
 
 func (client APIClient) GetEnvironment(ctx context.Context, project string, name string) (*Environment, error) {
