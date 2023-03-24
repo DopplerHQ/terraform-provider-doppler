@@ -24,10 +24,10 @@ resource "doppler_config" "backend_ci_github" {
 
 ### Required
 
-- **environment** (String) The name of the Doppler environment where the config is located
-- **name** (String) The name of the Doppler config
-- **project** (String) The name of the Doppler project where the config is located
+- `environment` (String) The name of the Doppler environment where the config is located
+- `name` (String) The name of the Doppler config
+- `project` (String) The name of the Doppler project where the config is located
 
-### Optional
+### Read-Only
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.

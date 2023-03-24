@@ -24,10 +24,10 @@ resource "doppler_environment" "backend_ci" {
 
 ### Required
 
-- **name** (String) The name of the Doppler environment
-- **project** (String) The name of the Doppler project where the environment is located
-- **slug** (String) The slug of the Doppler environment
+- `name` (String) The name of the Doppler environment
+- `project` (String) The name of the Doppler project where the environment is located
+- `slug` (String) The slug of the Doppler environment
 
-### Optional
+### Read-Only
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.

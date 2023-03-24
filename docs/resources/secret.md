@@ -36,15 +36,12 @@ output "resource_value" {
 
 ### Required
 
-- **config** (String) The name of the Doppler config
-- **name** (String) The name of the Doppler secret
-- **project** (String) The name of the Doppler project
-- **value** (String, Sensitive) The raw secret value
-
-### Optional
-
-- **id** (String) The ID of this resource.
+- `config` (String) The name of the Doppler config
+- `name` (String) The name of the Doppler secret
+- `project` (String) The name of the Doppler project
+- `value` (String, Sensitive) The raw secret value
 
 ### Read-Only
 
-- **computed** (String, Sensitive) The computed secret value, after resolving secret references
+- `computed` (String, Sensitive) The computed secret value, after resolving secret references
+- `id` (String) The ID of this resource.
