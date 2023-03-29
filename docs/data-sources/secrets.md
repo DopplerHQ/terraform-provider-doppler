@@ -37,10 +37,10 @@ output "json_parsing_values" {
 
 ### Optional
 
-- **config** (String) The name of the Doppler config (required for personal tokens)
-- **id** (String) The ID of this resource.
-- **project** (String) The name of the Doppler project (required for personal tokens)
+- `config` (String) The name of the Doppler config (required for personal tokens)
+- `project` (String) The name of the Doppler project (required for personal tokens)
 
 ### Read-Only
 
-- **map** (Map of String, Sensitive) A mapping of secret names to computed secret values
+- `id` (String) The ID of this resource.
+- `map` (Map of String, Sensitive) A mapping of secret names to computed secret values

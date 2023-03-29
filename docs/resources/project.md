@@ -23,9 +23,12 @@ resource "doppler_project" "backend" {
 
 ### Required
 
-- **name** (String) The name of the Doppler project
+- `name` (String) The name of the Doppler project
 
 ### Optional
 
-- **description** (String) The description of the Doppler project
-- **id** (String) The ID of this resource.
+- `description` (String) The description of the Doppler project
+
+### Read-Only
+
+- `id` (String) The ID of this resource.

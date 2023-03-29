@@ -5,7 +5,7 @@ NAME=doppler
 BINARY=terraform-provider-${NAME}
 # Only used for local development
 VERSION=0.0.1
-OS_ARCH=darwin_amd64
+OS_ARCH=darwin_$$(uname -m)
 
 default: install
 

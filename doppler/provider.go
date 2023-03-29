@@ -37,6 +37,12 @@ func Provider() *schema.Provider {
 			"doppler_environment":   resourceEnvironment(),
 			"doppler_config":        resourceConfig(),
 			"doppler_service_token": resourceServiceToken(),
+
+			"doppler_integration_aws_secrets_manager":  resourceIntegrationAWSAssumeRoleIntegration("aws_secrets_manager"),
+			"doppler_secrets_sync_aws_secrets_manager": resourceSyncAWSSecretsManager(),
+
+			"doppler_integration_aws_parameter_store":  resourceIntegrationAWSAssumeRoleIntegration("aws_parameter_store"),
+			"doppler_secrets_sync_aws_parameter_store": resourceSyncAWSParameterStore(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"doppler_secrets": dataSourceSecrets(),

@@ -27,15 +27,15 @@ resource "doppler_service_token" "backend_ci_token" {
 
 ### Required
 
-- **config** (String) The name of the Doppler config where the service token is located
-- **name** (String) The name of the Doppler service token
-- **project** (String) The name of the Doppler project where the service token is located
+- `config` (String) The name of the Doppler config where the service token is located
+- `name` (String) The name of the Doppler service token
+- `project` (String) The name of the Doppler project where the service token is located
 
 ### Optional
 
-- **access** (String) The access level (read or read/write)
-- **id** (String) The ID of this resource.
+- `access` (String) The access level (read or read/write)
 
 ### Read-Only
 
-- **key** (String, Sensitive) The key for the Doppler service token
+- `id` (String) The ID of this resource.
+- `key` (String, Sensitive) The key for the Doppler service token

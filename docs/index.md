@@ -21,12 +21,12 @@ provider "doppler" {
 
 ### Required
 
-- **doppler_token** (String) A Doppler token, either a personal or service token
+- `doppler_token` (String) A Doppler token, either a personal or service token
 
 ### Optional
 
-- **host** (String) The Doppler API host (i.e. https://api.doppler.com)
-- **verify_tls** (Boolean) Whether or not to verify TLS
+- `host` (String) The Doppler API host (i.e. https://api.doppler.com)
+- `verify_tls` (Boolean) Whether or not to verify TLS
 
 ## Getting Help
 

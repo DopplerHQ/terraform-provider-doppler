@@ -68,6 +68,31 @@ type ProjectResponse struct {
 	Project Project `json:"project"`
 }
 
+type IntegrationData = map[string]interface{}
+
+type Integration struct {
+	Slug string `json:"slug"`
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+type IntegrationResponse struct {
+	Integration Integration `json:"integration"`
+}
+
+type SyncData = map[string]interface{}
+
+type Sync struct {
+	Slug        string `json:"slug"`
+	Project     string `json:"project"`
+	Config      string `json:"config"`
+	Integration string `json:"integration"`
+}
+
+type SyncResponse struct {
+	Sync Sync `json:"sync"`
+}
+
 type Environment struct {
 	Slug      string `json:"slug"`
 	Name      string `json:"name"`

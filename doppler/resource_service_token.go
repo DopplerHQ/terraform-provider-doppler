@@ -68,9 +68,8 @@ func resourceServiceTokenCreate(ctx context.Context, d *schema.ResourceData, m i
 
 	d.SetId(token.getResourceId())
 
-	setErr := d.Set("key", token.Key)
-	if setErr != nil {
-		return diag.FromErr(setErr)
+	if err = d.Set("key", token.Key); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return diags
@@ -102,19 +101,16 @@ func resourceServiceTokenRead(ctx context.Context, d *schema.ResourceData, m int
 		return diag.Errorf("Could not find service token")
 	}
 
-	setErr := d.Set("project", token.Project)
-	if setErr != nil {
-		return diag.FromErr(setErr)
+	if err = d.Set("project", token.Project); err != nil {
+		return diag.FromErr(err)
 	}
 
-	setErr = d.Set("config", token.Config)
-	if setErr != nil {
-		return diag.FromErr(setErr)
+	if err = d.Set("config", token.Config); err != nil {
+		return diag.FromErr(err)
 	}
 
-	setErr = d.Set("access", token.Access)
-	if setErr != nil {
-		return diag.FromErr(setErr)
+	if err = d.Set("access", token.Access); err != nil {
+		return diag.FromErr(err)
 	}
 
 	// `key` cannot be read after initial creation
@@ -131,8 +127,7 @@ func resourceServiceTokenDelete(ctx context.Context, d *schema.ResourceData, m i
 		return diag.FromErr(err)
 	}
 
-	err = client.DeleteServiceToken(ctx, project, config, slug)
-	if err != nil {
+	if err = client.DeleteServiceToken(ctx, project, config, slug); err != nil {
 		return diag.FromErr(err)
 	}
 

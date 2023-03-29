@@ -87,19 +87,16 @@ func resourceConfigRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
-	setErr := d.Set("project", config.Project)
-	if setErr != nil {
-		return diag.FromErr(setErr)
+	if err = d.Set("project", config.Project); err != nil {
+		return diag.FromErr(err)
 	}
 
-	setErr = d.Set("environment", config.Environment)
-	if setErr != nil {
-		return diag.FromErr(setErr)
+	if err = d.Set("environment", config.Environment); err != nil {
+		return diag.FromErr(err)
 	}
 
-	setErr = d.Set("name", config.Name)
-	if setErr != nil {
-		return diag.FromErr(setErr)
+	if err = d.Set("name", config.Name); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return diags
@@ -114,8 +111,7 @@ func resourceConfigDelete(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	err = client.DeleteConfig(ctx, project, name)
-	if err != nil {
+	if err = client.DeleteConfig(ctx, project, name); err != nil {
 		return diag.FromErr(err)
 	}
 
