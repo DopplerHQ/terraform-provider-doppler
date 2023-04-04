@@ -5,7 +5,16 @@ NAME=doppler
 BINARY=terraform-provider-${NAME}
 # Only used for local development
 VERSION=0.0.1
-OS_ARCH=darwin_$$(uname -m)
+ARCH := $(shell uname -m)
+# required because Terraform always evaluates x86_64
+# architectures as amd64
+ifeq ($(ARCH), x86_64)
+  OS_ARCH=darwin_amd64
+else ifeq ($(ARCH), arm64)
+  OS_ARCH=darwin_arm64
+else
+  $(error $(ARCH) is currently untested. Please update the Makefile to handle your architecture properly.)
+endif
 
 default: install
 
