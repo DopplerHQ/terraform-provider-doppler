@@ -84,7 +84,7 @@ func resourceConfigRead(ctx context.Context, d *schema.ResourceData, m interface
 
 	config, err := client.GetConfig(ctx, project, name)
 	if err != nil {
-		return diag.FromErr(err)
+		return handleNotFoundError(err, d)
 	}
 
 	if err = d.Set("project", config.Project); err != nil {

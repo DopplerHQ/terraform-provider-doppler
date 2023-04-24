@@ -83,7 +83,7 @@ func (builder ResourceSyncBuilder) ReadContextFunc() schema.ReadContextFunc {
 
 		sync, err := client.GetSync(ctx, config, project, name)
 		if err != nil {
-			return diag.FromErr(err)
+			return handleNotFoundError(err, d)
 		}
 
 		if err = d.Set("integration", sync.Integration); err != nil {

@@ -86,7 +86,7 @@ func resourceServiceTokenRead(ctx context.Context, d *schema.ResourceData, m int
 
 	tokens, err := client.GetServiceTokens(ctx, project, config)
 	if err != nil {
-		return diag.FromErr(err)
+		return handleNotFoundError(err, d)
 	}
 
 	var token *ServiceToken
@@ -98,7 +98,8 @@ func resourceServiceTokenRead(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	if token == nil {
-		return diag.Errorf("Could not find service token")
+		err := &CustomNotFoundError{Message: "Could not find requested service token"}
+		return handleNotFoundError(err, d)
 	}
 
 	if err = d.Set("project", token.Project); err != nil {

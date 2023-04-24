@@ -101,7 +101,7 @@ func (builder ResourceIntegrationBuilder) ReadContextFunc() schema.ReadContextFu
 
 		integ, err := client.GetIntegration(ctx, slug)
 		if err != nil {
-			return diag.FromErr(err)
+			return handleNotFoundError(err, d)
 		}
 
 		if err = d.Set("name", integ.Name); err != nil {

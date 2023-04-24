@@ -85,7 +85,7 @@ func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface
 
 	secret, err := client.GetSecret(ctx, project, config, name)
 	if err != nil {
-		return diag.FromErr(err)
+		return handleNotFoundError(err, d)
 	}
 
 	if err = d.Set("value", secret.Value.Raw); err != nil {

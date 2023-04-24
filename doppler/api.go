@@ -39,6 +39,7 @@ type APIError struct {
 	Err        error
 	Message    string
 	RetryAfter *time.Duration
+	Response   *APIResponse
 }
 
 type ErrorResponse struct {
@@ -140,16 +141,16 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 	defer r.Body.Close()
 
 	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return &APIResponse{HTTPResponse: r, Body: nil}, &APIError{Err: err, Message: "Unable to load response data"}
-	}
 	response := &APIResponse{HTTPResponse: r, Body: body}
+	if err != nil {
+		return response, &APIError{Err: err, Message: "Unable to load response data", Response: response}
+	}
 
 	if !isSuccess(r.StatusCode) {
 		if contentType := r.Header.Get("content-type"); strings.HasPrefix(contentType, "application/json") {
 			var errResponse ErrorResponse
 			if err := json.Unmarshal(body, &errResponse); err != nil {
-				return response, &APIError{Err: err, Message: "Unable to load response"}
+				return response, &APIError{Err: err, Message: "Unable to load response", Response: response}
 			}
 
 			var retryAfter *time.Duration
@@ -177,12 +178,13 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 				Err:        nil,
 				Message:    strings.Join(errResponse.Messages, "\n"),
 				RetryAfter: retryAfter,
+				Response:   response,
 			}
 		}
-		return nil, &APIError{Err: fmt.Errorf("%d status code; %d bytes", r.StatusCode, len(body)), Message: "Unable to load response"}
+		return nil, &APIError{Err: fmt.Errorf("%d status code; %d bytes", r.StatusCode, len(body)), Message: "Unable to load response", Response: response}
 	}
 	if err != nil {
-		return nil, &APIError{Err: err, Message: "Unable to parse response data"}
+		return nil, &APIError{Err: err, Message: "Unable to parse response data", Response: response}
 	}
 	return response, nil
 }

@@ -70,7 +70,7 @@ func resourceProjectRead(ctx context.Context, d *schema.ResourceData, m interfac
 
 	project, err := client.GetProject(ctx, name)
 	if err != nil {
-		return diag.FromErr(err)
+		return handleNotFoundError(err, d)
 	}
 
 	if err = d.Set("name", project.Name); err != nil {
