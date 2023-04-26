@@ -58,11 +58,15 @@ func resourceSecretUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	config := d.Get("config").(string)
 	name := d.Get("name").(string)
 	value := d.Get("value").(string)
-	if value != "" {
-		newSecret := RawSecret{Name: name, Value: &value}
-		if err := client.UpdateSecrets(ctx, project, config, []RawSecret{newSecret}); err != nil {
-			return diag.FromErr(err)
-		}
+
+	secrets := []RawSecret{{Name: name, Value: &value}}
+	if d.HasChange("name") {
+		previousName, _ := d.GetChange("name")
+		secrets = append(secrets, RawSecret{Name: previousName.(string), Value: nil})
+	}
+
+	if err := client.UpdateSecrets(ctx, project, config, secrets); err != nil {
+		return diag.FromErr(err)
 	}
 
 	d.SetId(getSecretId(project, config, name))
