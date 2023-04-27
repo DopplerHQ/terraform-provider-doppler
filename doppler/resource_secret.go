@@ -60,7 +60,7 @@ func resourceSecretUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	value := d.Get("value").(string)
 
 	secrets := []RawSecret{{Name: name, Value: &value}}
-	if d.HasChange("name") {
+	if !d.IsNewResource() && d.HasChange("name") {
 		previousName, _ := d.GetChange("name")
 		secrets = append(secrets, RawSecret{Name: previousName.(string), Value: nil})
 	}
