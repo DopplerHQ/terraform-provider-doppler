@@ -77,6 +77,10 @@ resource "doppler_service_token" "ci_github_token" {
 }
 ```
 
+# Terraform CDK
+
+Read the [Terraform CDK guide](https://docs.doppler.com/docs/terraform-cdk) to learn more about how to use this provider with Terraform CDK.
+
 # Development
 
 Run the following command to build the provider:
