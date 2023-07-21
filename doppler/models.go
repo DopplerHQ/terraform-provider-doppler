@@ -7,11 +7,6 @@ import (
 	"strings"
 )
 
-type RawSecret struct {
-	Name  string
-	Value *string
-}
-
 type ComputedSecret struct {
 	Name  string
 	Value string
@@ -41,8 +36,10 @@ type Secret struct {
 }
 
 type SecretValue struct {
-	Raw      string `json:"raw"`
-	Computed string `json:"computed"`
+	Raw                *string `json:"raw,omitempty"`
+	Computed           *string `json:"computed,omitempty"`
+	RawVisibility      *string `json:"rawVisibility,omitempty"`
+	ComputedVisibility *string `json:"computedVisibility,omitempty"`
 }
 
 func getSecretId(project string, config string, name string) string {
@@ -55,6 +52,16 @@ func parseSecretId(id string) (project string, config string, name string, err e
 		return "", "", "", errors.New("invalid secret ID")
 	}
 	return tokens[0], tokens[1], tokens[2], nil
+}
+
+type ChangeRequest struct {
+	OriginalName       *string `json:"originalName,omitempty"`
+	OriginalValue      *string `json:"originalValue,omitempty"`
+	OriginalVisibility *string `json:"originalVisibility,omitempty"`
+	Name               string  `json:"name"`
+	Value              *string `json:"value"`
+	ShouldDelete       bool    `json:"shouldDelete"`
+	Visibility         string  `json:"visibility,omitempty"`
 }
 
 type Project struct {
