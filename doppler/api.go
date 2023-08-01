@@ -230,17 +230,9 @@ func (client APIClient) GetSecret(ctx context.Context, project string, config st
 	return &result, nil
 }
 
-func (client APIClient) UpdateSecrets(ctx context.Context, project string, config string, secrets []RawSecret) error {
-	secretsPayload := map[string]interface{}{}
-	for _, secret := range secrets {
-		if secret.Value != nil {
-			secretsPayload[secret.Name] = *secret.Value
-		} else {
-			secretsPayload[secret.Name] = nil
-		}
-	}
+func (client APIClient) UpdateSecrets(ctx context.Context, project string, config string, changeRequests []ChangeRequest) error {
 	payload := map[string]interface{}{
-		"secrets": secretsPayload,
+		"change_requests": changeRequests,
 	}
 	if project != "" {
 		payload["project"] = project

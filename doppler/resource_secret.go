@@ -2,11 +2,13 @@ package doppler
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceSecret() *schema.Resource {
@@ -37,6 +39,13 @@ func resourceSecret() *schema.Resource {
 				Required:    true,
 				Sensitive:   true,
 			},
+			"visibility": {
+				Description:  "The visibility of the secret",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "masked",
+				ValidateFunc: validation.StringInSlice([]string{"masked", "unmasked", "restricted"}, false),
+			},
 			"computed": {
 				Description: "The computed secret value, after resolving secret references",
 				Type:        schema.TypeString,
@@ -58,14 +67,26 @@ func resourceSecretUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	config := d.Get("config").(string)
 	name := d.Get("name").(string)
 	value := d.Get("value").(string)
+	visibility := d.Get("visibility").(string)
 
-	secrets := []RawSecret{{Name: name, Value: &value}}
-	if !d.IsNewResource() && d.HasChange("name") {
-		previousName, _ := d.GetChange("name")
-		secrets = append(secrets, RawSecret{Name: previousName.(string), Value: nil})
+	changeRequest := ChangeRequest{
+		Name:       name,
+		Value:      &value,
+		Visibility: visibility,
+	}
+	if !d.IsNewResource() {
+		previousNameValue, _ := d.GetChange("name")
+		previousName := previousNameValue.(string)
+		changeRequest.OriginalName = &previousName
+	} else {
+		changeRequest.OriginalName = &name
 	}
 
-	if err := client.UpdateSecrets(ctx, project, config, secrets); err != nil {
+	// NOTE: We could set `OriginalValue` here to leverage staleness detection in the Doppler API.
+	// However, Terraform already confirms the existing state before making an update.
+	// We'll skip the API-level staleness checking to allow Terraform to push over an external change.
+
+	if err := client.UpdateSecrets(ctx, project, config, []ChangeRequest{changeRequest}); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -92,11 +113,30 @@ func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface
 		return handleNotFoundError(err, d)
 	}
 
+	nilFields := []string{}
+	if secret.Value.Raw == nil {
+		nilFields = append(nilFields, "raw")
+	}
+	if secret.Value.Computed == nil {
+		nilFields = append(nilFields, "computed")
+	}
+
+	if len(nilFields) > 0 {
+		return diag.FromErr(fmt.Errorf(
+			"One or more secret fields are restricted: %v. "+
+				"You must use a service account or service token to manage these resources. "+
+				"Otherwise, Terraform cannot fetch these restricted secrets to check the validity of their state.", nilFields))
+	}
+
 	if err = d.Set("value", secret.Value.Raw); err != nil {
 		return diag.FromErr(err)
 	}
 
 	if err = d.Set("computed", secret.Value.Computed); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err = d.Set("visibility", secret.Value.RawVisibility); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -118,8 +158,8 @@ func resourceSecretDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	config := tokens[1]
 	name := tokens[2]
 
-	newSecret := RawSecret{Name: name, Value: nil}
-	if err := client.UpdateSecrets(ctx, project, config, []RawSecret{newSecret}); err != nil {
+	changeRequest := ChangeRequest{OriginalName: &name, Name: name, ShouldDelete: true}
+	if err := client.UpdateSecrets(ctx, project, config, []ChangeRequest{changeRequest}); err != nil {
 		return diag.FromErr(err)
 	}
 
