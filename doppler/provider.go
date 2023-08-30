@@ -38,6 +38,9 @@ func Provider() *schema.Provider {
 			"doppler_config":        resourceConfig(),
 			"doppler_service_token": resourceServiceToken(),
 
+			"doppler_project_member_group":           resourceProjectMemberGroup(),
+			"doppler_project_member_service_account": resourceProjectMemberServiceAccount(),
+
 			"doppler_integration_aws_secrets_manager":  resourceIntegrationAWSAssumeRoleIntegration("aws_secrets_manager"),
 			"doppler_secrets_sync_aws_secrets_manager": resourceSyncAWSSecretsManager(),
 

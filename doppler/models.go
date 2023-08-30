@@ -75,6 +75,34 @@ type ProjectResponse struct {
 	Project Project `json:"project"`
 }
 
+type ProjectMemberRole struct {
+	Identifier string `json:"identifier"`
+}
+
+type ProjectMember struct {
+	Type                  string            `json:"type"`
+	Slug                  string            `json:"slug"`
+	Role                  ProjectMemberRole `json:"role"`
+	AccessAllEnvironments bool              `json:"access_all_environment"`
+	Environments          []string          `json:"environments,omitempty"`
+}
+
+type ProjectMemberResponse struct {
+	Member ProjectMember `json:"member"`
+}
+
+func getProjectMemberId(project string, memberType string, memberSlug string) string {
+	return strings.Join([]string{project, memberType, memberSlug}, ".")
+}
+
+func parseProjectMemberId(id string) (project string, memberType string, memberSlug string, err error) {
+	tokens := strings.Split(id, ".")
+	if len(tokens) != 3 {
+		return "", "", "", errors.New("invalid project member ID")
+	}
+	return tokens[0], tokens[1], tokens[2], nil
+}
+
 type IntegrationData = map[string]interface{}
 
 type Integration struct {
