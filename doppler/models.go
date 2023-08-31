@@ -207,3 +207,23 @@ func parseServiceTokenResourceId(id string) (project string, config string, slug
 	}
 	return tokens[0], tokens[1], tokens[2], nil
 }
+
+type WorkplaceRole struct {
+	Name         string   `json:"name"`
+	Permissions  []string `json:"permissions"`
+	Identifier   string   `json:"identifier,omitempty"`
+	IsCustomRole bool     `json:"is_custom_role"`
+	IsInlineRole bool     `json:"is_inline_role"`
+	CreatedAt    string   `json:"created_at"`
+}
+
+type ServiceAccount struct {
+	Slug          string                      `json:"slug"`
+	Name          string                      `json:"name"`
+	CreatedAt     string                      `json:"created_at"`
+	WorkplaceRole WorkplaceRole `json:"workplace_role"`
+}
+
+type ServiceAccountResponse struct {
+	ServiceAccount ServiceAccount `json:"service_account"`
+}

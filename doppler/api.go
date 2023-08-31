@@ -757,3 +757,76 @@ func (client APIClient) DeleteServiceToken(ctx context.Context, project string, 
 	}
 	return nil
 }
+
+// Service Accounts
+
+func (client APIClient) GetServiceAccount(ctx context.Context, slug string) (*ServiceAccount, error) {
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/workplace/service_accounts/service_account/%s", url.QueryEscape(slug)), []QueryParam{}, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result ServiceAccountResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse service account"}
+	}
+	return &result.ServiceAccount, nil
+}
+
+func (client APIClient) CreateServiceAccount(ctx context.Context, name string, workplaceRole string, workplacePermissions []string) (*ServiceAccount, error) {
+	payload := map[string]interface{}{
+		"name": name,
+	}
+	if workplaceRole != "" {
+		payload["workplace_role"] = map[string]string{"identifier": workplaceRole}
+	} else if workplacePermissions != nil {
+		payload["workplace_role"] = map[string][]string{"permissions": workplacePermissions}
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize service account"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/workplace/service_accounts", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ServiceAccountResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse service account"}
+	}
+	return &result.ServiceAccount, nil
+}
+
+func (client APIClient) UpdateServiceAccount(ctx context.Context, slug string, name string, workplaceRole string, workplacePermissions []string) (*ServiceAccount, error) {
+	payload := map[string]interface{}{}
+	if name != "" {
+		payload["name"] = name
+	}
+	if workplaceRole != "" {
+		payload["workplace_role"] = map[string]string{"identifier": workplaceRole}
+	} else if workplacePermissions != nil {
+		payload["workplace_role"] = map[string][]string{"permissions": workplacePermissions}
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize service account"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "PATCH", fmt.Sprintf("/v3/workplace/service_accounts/service_account/%s", url.QueryEscape(slug)), []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ServiceAccountResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse service account"}
+	}
+	return &result.ServiceAccount, nil
+}
+
+func (client APIClient) DeleteServiceAccount(ctx context.Context, slug string) error {
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/workplace/service_accounts/service_account/%s", url.QueryEscape(slug)), []QueryParam{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
