@@ -830,3 +830,76 @@ func (client APIClient) DeleteServiceAccount(ctx context.Context, slug string) e
 	}
 	return nil
 }
+
+// Groups
+
+func (client APIClient) GetGroup(ctx context.Context, slug string) (*Group, error) {
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/workplace/groups/group/%s", url.QueryEscape(slug)), []QueryParam{}, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result GroupResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse group"}
+	}
+	return &result.Group, nil
+}
+
+func (client APIClient) CreateGroup(ctx context.Context, name string, defaultProjectRole string) (*Group, error) {
+	payload := map[string]interface{}{
+		"name": name,
+	}
+	if defaultProjectRole != "" {
+		payload["default_project_role"] = defaultProjectRole
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize group"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/workplace/groups", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result GroupResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse group"}
+	}
+	return &result.Group, nil
+}
+
+func (client APIClient) UpdateGroup(ctx context.Context, slug string, name string, defaultProjectRole *string) (*Group, error) {
+	payload := map[string]interface{}{}
+	if name != "" {
+		payload["name"] = name
+	}
+	if defaultProjectRole != nil {
+		if *defaultProjectRole == "" {
+			payload["default_project_role"] = nil
+		} else {
+			payload["default_project_role"] = defaultProjectRole
+		}
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize group"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "PATCH", fmt.Sprintf("/v3/workplace/groups/group/%s", url.QueryEscape(slug)), []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result GroupResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse group"}
+	}
+	return &result.Group, nil
+}
+
+func (client APIClient) DeleteGroup(ctx context.Context, slug string) error {
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/workplace/groups/group/%s", url.QueryEscape(slug)), []QueryParam{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}

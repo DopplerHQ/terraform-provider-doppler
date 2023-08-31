@@ -227,3 +227,18 @@ type ServiceAccount struct {
 type ServiceAccountResponse struct {
 	ServiceAccount ServiceAccount `json:"service_account"`
 }
+
+type SimpleProjectRole struct {
+	Identifier string `json:"identifier"`
+}
+
+type Group struct {
+	Slug               string            `json:"slug"`
+	Name               string            `json:"name"`
+	CreatedAt          string            `json:"created_at"`
+	DefaultProjectRole SimpleProjectRole `json:"default_project_role"`
+}
+
+type GroupResponse struct {
+	Group Group `json:"group"`
+}
