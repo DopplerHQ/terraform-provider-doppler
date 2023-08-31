@@ -11,6 +11,9 @@ func resourceEnvironment() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceEnvironmentCreate,
 		ReadContext:   resourceEnvironmentRead,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 		UpdateContext: resourceEnvironmentUpdate,
 		DeleteContext: resourceEnvironmentDelete,
 		Schema: map[string]*schema.Schema{
@@ -92,6 +95,10 @@ func resourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, m inte
 	}
 
 	if err = d.Set("name", environment.Name); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err = d.Set("project", environment.Project); err != nil {
 		return diag.FromErr(err)
 	}
 

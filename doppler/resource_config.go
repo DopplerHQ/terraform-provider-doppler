@@ -11,6 +11,9 @@ func resourceConfig() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceConfigCreate,
 		ReadContext:   resourceConfigRead,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 		UpdateContext: resourceConfigUpdate,
 		DeleteContext: resourceConfigDelete,
 		Schema: map[string]*schema.Schema{

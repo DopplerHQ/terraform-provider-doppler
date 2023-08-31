@@ -11,6 +11,9 @@ func resourceProject() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceProjectCreate,
 		ReadContext:   resourceProjectRead,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 		UpdateContext: resourceProjectUpdate,
 		DeleteContext: resourceProjectDelete,
 		Schema: map[string]*schema.Schema{
