@@ -31,3 +31,7 @@ resource "doppler_environment" "backend_ci" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+## Resource ID Format
+
+Resource IDs are in the format `<project-name>.<environment-slug>`.
