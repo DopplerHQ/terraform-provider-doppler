@@ -15,6 +15,9 @@ func resourceSecret() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceSecretUpdate,
 		ReadContext:   resourceSecretRead,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 		UpdateContext: resourceSecretUpdate,
 		DeleteContext: resourceSecretDelete,
 		Schema: map[string]*schema.Schema{
@@ -126,6 +129,18 @@ func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface
 			"One or more secret fields are restricted: %v. "+
 				"You must use a service account or service token to manage these resources. "+
 				"Otherwise, Terraform cannot fetch these restricted secrets to check the validity of their state.", nilFields))
+	}
+
+	if err = d.Set("project", project); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err = d.Set("config", config); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err = d.Set("name", name); err != nil {
+		return diag.FromErr(err)
 	}
 
 	if err = d.Set("value", secret.Value.Raw); err != nil {

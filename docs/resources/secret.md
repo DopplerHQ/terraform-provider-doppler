@@ -41,7 +41,15 @@ output "resource_value" {
 - `project` (String) The name of the Doppler project
 - `value` (String, Sensitive) The raw secret value
 
+### Optional
+
+- `visibility` (String) The visibility of the secret
+
 ### Read-Only
 
 - `computed` (String, Sensitive) The computed secret value, after resolving secret references
 - `id` (String) The ID of this resource.
+
+## Resource ID Format
+
+Resource IDs are in the format `<project-name>.<config-name>.<secret-name>`.
