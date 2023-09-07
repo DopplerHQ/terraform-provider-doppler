@@ -79,12 +79,12 @@ resource "doppler_service_token" "ci_github_token" {
 
 ## Referencing Secrets Using Multiple Access Tokens
 
-```
+```hcl
 terraform {
   required_providers {
     doppler = {
+      # version = <latest version>
       source = "DopplerHQ/doppler"
-      version = "1.0.0"
     }
   }
 }
