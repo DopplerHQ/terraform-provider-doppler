@@ -75,6 +75,34 @@ type ProjectResponse struct {
 	Project Project `json:"project"`
 }
 
+type ProjectMemberRole struct {
+	Identifier string `json:"identifier"`
+}
+
+type ProjectMember struct {
+	Type                  string            `json:"type"`
+	Slug                  string            `json:"slug"`
+	Role                  ProjectMemberRole `json:"role"`
+	AccessAllEnvironments bool              `json:"access_all_environment"`
+	Environments          []string          `json:"environments,omitempty"`
+}
+
+type ProjectMemberResponse struct {
+	Member ProjectMember `json:"member"`
+}
+
+func getProjectMemberId(project string, memberType string, memberSlug string) string {
+	return strings.Join([]string{project, memberType, memberSlug}, ".")
+}
+
+func parseProjectMemberId(id string) (project string, memberType string, memberSlug string, err error) {
+	tokens := strings.Split(id, ".")
+	if len(tokens) != 3 {
+		return "", "", "", errors.New("invalid project member ID")
+	}
+	return tokens[0], tokens[1], tokens[2], nil
+}
+
 type IntegrationData = map[string]interface{}
 
 type Integration struct {
@@ -178,4 +206,39 @@ func parseServiceTokenResourceId(id string) (project string, config string, slug
 		return "", "", "", errors.New("invalid service token ID")
 	}
 	return tokens[0], tokens[1], tokens[2], nil
+}
+
+type WorkplaceRole struct {
+	Name         string   `json:"name"`
+	Permissions  []string `json:"permissions"`
+	Identifier   string   `json:"identifier,omitempty"`
+	IsCustomRole bool     `json:"is_custom_role"`
+	IsInlineRole bool     `json:"is_inline_role"`
+	CreatedAt    string   `json:"created_at"`
+}
+
+type ServiceAccount struct {
+	Slug          string                      `json:"slug"`
+	Name          string                      `json:"name"`
+	CreatedAt     string                      `json:"created_at"`
+	WorkplaceRole WorkplaceRole `json:"workplace_role"`
+}
+
+type ServiceAccountResponse struct {
+	ServiceAccount ServiceAccount `json:"service_account"`
+}
+
+type SimpleProjectRole struct {
+	Identifier string `json:"identifier"`
+}
+
+type Group struct {
+	Slug               string            `json:"slug"`
+	Name               string            `json:"name"`
+	CreatedAt          string            `json:"created_at"`
+	DefaultProjectRole SimpleProjectRole `json:"default_project_role"`
+}
+
+type GroupResponse struct {
+	Group Group `json:"group"`
 }

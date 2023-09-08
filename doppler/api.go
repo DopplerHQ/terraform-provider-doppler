@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -329,6 +330,82 @@ func (client APIClient) DeleteProject(ctx context.Context, name string) error {
 		return err
 	}
 
+	return nil
+}
+
+// Project Members
+
+func (client APIClient) CreateProjectMember(ctx context.Context, project string, memberType string, memberSlug string, role string, environments []string) (*ProjectMember, error) {
+	payload := map[string]interface{}{
+		"project":      project,
+		"slug":         memberSlug,
+		"type":         memberType,
+		"role":         role,
+		"environments": environments,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize project member"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/projects/project/members", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ProjectMemberResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse project member"}
+	}
+	return &result.Member, nil
+}
+
+func (client APIClient) GetProjectMember(ctx context.Context, project string, memberType string, memberSlug string) (*ProjectMember, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/projects/project/members/member/%s/%s", url.QueryEscape(memberType), url.QueryEscape(memberSlug)), params, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result ProjectMemberResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse project member"}
+	}
+	return &result.Member, nil
+}
+
+func (client APIClient) UpdateProjectMember(ctx context.Context, project string, memberType string, memberSlug string, role *string, environments []string) (*ProjectMember, error) {
+	payload := map[string]interface{}{
+		"project": project,
+	}
+	if role != nil {
+		payload["role"] = role
+	}
+	if environments != nil {
+		payload["environments"] = environments
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize project member update"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "PATCH", fmt.Sprintf("/v3/projects/project/members/member/%s/%s", url.QueryEscape(memberType), url.QueryEscape(memberSlug)), []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ProjectMemberResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse project member"}
+	}
+	return &result.Member, nil
+}
+
+func (client APIClient) DeleteProjectMember(ctx context.Context, project string, memberType string, memberSlug string) error {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/projects/project/members/member/%s/%s", url.QueryEscape(memberType), url.QueryEscape(memberSlug)), params, nil)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -675,6 +752,152 @@ func (client APIClient) DeleteServiceToken(ctx context.Context, project string, 
 		return &APIError{Err: err, Message: "Unable to serialize config"}
 	}
 	_, err = client.PerformRequestWithRetry(ctx, "DELETE", "/v3/configs/config/tokens/token", []QueryParam{}, body)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Service Accounts
+
+func (client APIClient) GetServiceAccount(ctx context.Context, slug string) (*ServiceAccount, error) {
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/workplace/service_accounts/service_account/%s", url.QueryEscape(slug)), []QueryParam{}, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result ServiceAccountResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse service account"}
+	}
+	return &result.ServiceAccount, nil
+}
+
+func (client APIClient) CreateServiceAccount(ctx context.Context, name string, workplaceRole string, workplacePermissions []string) (*ServiceAccount, error) {
+	payload := map[string]interface{}{
+		"name": name,
+	}
+	if workplaceRole != "" {
+		payload["workplace_role"] = map[string]string{"identifier": workplaceRole}
+	} else if workplacePermissions != nil {
+		payload["workplace_role"] = map[string][]string{"permissions": workplacePermissions}
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize service account"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/workplace/service_accounts", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ServiceAccountResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse service account"}
+	}
+	return &result.ServiceAccount, nil
+}
+
+func (client APIClient) UpdateServiceAccount(ctx context.Context, slug string, name string, workplaceRole string, workplacePermissions []string) (*ServiceAccount, error) {
+	payload := map[string]interface{}{}
+	if name != "" {
+		payload["name"] = name
+	}
+	if workplaceRole != "" {
+		payload["workplace_role"] = map[string]string{"identifier": workplaceRole}
+	} else if workplacePermissions != nil {
+		payload["workplace_role"] = map[string][]string{"permissions": workplacePermissions}
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize service account"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "PATCH", fmt.Sprintf("/v3/workplace/service_accounts/service_account/%s", url.QueryEscape(slug)), []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ServiceAccountResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse service account"}
+	}
+	return &result.ServiceAccount, nil
+}
+
+func (client APIClient) DeleteServiceAccount(ctx context.Context, slug string) error {
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/workplace/service_accounts/service_account/%s", url.QueryEscape(slug)), []QueryParam{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Groups
+
+func (client APIClient) GetGroup(ctx context.Context, slug string) (*Group, error) {
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/workplace/groups/group/%s", url.QueryEscape(slug)), []QueryParam{}, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result GroupResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse group"}
+	}
+	return &result.Group, nil
+}
+
+func (client APIClient) CreateGroup(ctx context.Context, name string, defaultProjectRole string) (*Group, error) {
+	payload := map[string]interface{}{
+		"name": name,
+	}
+	if defaultProjectRole != "" {
+		payload["default_project_role"] = defaultProjectRole
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize group"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/workplace/groups", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result GroupResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse group"}
+	}
+	return &result.Group, nil
+}
+
+func (client APIClient) UpdateGroup(ctx context.Context, slug string, name string, defaultProjectRole *string) (*Group, error) {
+	payload := map[string]interface{}{}
+	if name != "" {
+		payload["name"] = name
+	}
+	if defaultProjectRole != nil {
+		if *defaultProjectRole == "" {
+			payload["default_project_role"] = nil
+		} else {
+			payload["default_project_role"] = defaultProjectRole
+		}
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize group"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "PATCH", fmt.Sprintf("/v3/workplace/groups/group/%s", url.QueryEscape(slug)), []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result GroupResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse group"}
+	}
+	return &result.Group, nil
+}
+
+func (client APIClient) DeleteGroup(ctx context.Context, slug string) error {
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/workplace/groups/group/%s", url.QueryEscape(slug)), []QueryParam{}, nil)
 	if err != nil {
 		return err
 	}
