@@ -7,15 +7,15 @@ description: |-
 
 # doppler_trusted_ip (Resource)
 
-Manage a Doppler config.
+Manage a Doppler trusted IP.
 
 ## Example Usage
 
 ```terraform
-resource "doppler_config" "backend_ci_github" {
+resource "doppler_trusted_ip" "backend_ci_github" {
   project = "backend"
-  environment = "ci"
-  name = "ci_github"
+  config = "ci_github"
+  ip = "127.0.0.1/32"
 }
 ```
 
