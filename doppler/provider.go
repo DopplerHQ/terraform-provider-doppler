@@ -36,6 +36,7 @@ func Provider() *schema.Provider {
 			"doppler_project":       resourceProject(),
 			"doppler_environment":   resourceEnvironment(),
 			"doppler_config":        resourceConfig(),
+			"doppler_trusted_ip":    resourceTrustedIP(),
 			"doppler_service_token": resourceServiceToken(),
 
 			"doppler_service_account": resourceServiceAccount(),

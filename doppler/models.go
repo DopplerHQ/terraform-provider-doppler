@@ -177,6 +177,32 @@ func parseConfigResourceId(id string) (project string, environment string, name 
 	return tokens[0], tokens[1], tokens[2], nil
 }
 
+type TrustedIP struct {
+	Project string `json:"project"`
+	Config  string `json:"config"`
+	IP      string `json:"ip"`
+}
+
+func (ip TrustedIP) getResourceId() string {
+	return strings.Join([]string{ip.Project, ip.Config, ip.IP}, ".")
+}
+
+func parseTrustedIPResourceId(id string) (project string, config string, ip string, err error) {
+	tokens := strings.Split(id, ".")
+	if len(tokens) != 3 {
+		return "", "", "", errors.New("invalid trusted IP ID")
+	}
+	return tokens[0], tokens[1], tokens[2], nil
+}
+
+type TrustedIPsListResponse struct {
+	IPs []TrustedIP `json:"ips"`
+}
+
+type TrustedIPsAddResponse struct {
+	IP TrustedIP `json:"ip"`
+}
+
 type ServiceToken struct {
 	Slug        string `json:"slug"`
 	Name        string `json:"name"`
@@ -218,9 +244,9 @@ type WorkplaceRole struct {
 }
 
 type ServiceAccount struct {
-	Slug          string                      `json:"slug"`
-	Name          string                      `json:"name"`
-	CreatedAt     string                      `json:"created_at"`
+	Slug          string        `json:"slug"`
+	Name          string        `json:"name"`
+	CreatedAt     string        `json:"created_at"`
 	WorkplaceRole WorkplaceRole `json:"workplace_role"`
 }
 

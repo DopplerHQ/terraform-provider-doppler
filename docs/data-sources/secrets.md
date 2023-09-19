@@ -11,8 +11,6 @@ Retrieve all secrets in the config.
 
 ## Example Usage
 
-Basic usage:
-
 ```terraform
 data "doppler_secrets" "this" {}
 
@@ -31,46 +29,6 @@ output "max_workers" {
 # e.g. FEATURE_FLAGS = `{ "AUTOPILOT": true, "TOP_SPEED": 130 }`
 output "json_parsing_values" {
   value = nonsensitive(jsondecode(data.doppler_secrets.this.map.FEATURE_FLAGS)["TOP_SPEED"])
-}
-```
-
-Referencing secrets from multiple projects:
-
-```terraform
-variable "doppler_token_dev" {
-  type = string
-  description = "A token to authenticate with Doppler for the dev config"
-}
-
-variable "doppler_token_prd" {
-  type = string
-  description = "A token to authenticate with Doppler for the prd config"
-}
-
-provider "doppler" {
-  doppler_token = var.doppler_token_dev
-  alias = "dev"
-}
-
-provider "doppler" {
-  doppler_token = var.doppler_token_prd
-  alias = "prd"
-}
-
-data "doppler_secrets" "dev" {
-  provider = doppler.dev
-}
-
-data "doppler_secrets" "prd" {
-  provider = doppler.prd
-}
-
-output "port-dev" {
-  value = nonsensitive(data.doppler_secrets.dev.map.PORT)
-}
-
-output "port-prd" {
-  value = nonsensitive(data.doppler_secrets.prd.map.PORT)
 }
 ```
 

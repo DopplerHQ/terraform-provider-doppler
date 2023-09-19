@@ -101,6 +101,12 @@ resource "doppler_config" "ci_github" {
   name = "ci_github"
 }
 
+resource "dopper_trusted_ip" "ci_github" {
+  project = doppler_project.test_proj.name
+  config = doppler_config.ci_github.name
+  ip = "127.0.0.1/32"
+}
+
 resource "doppler_service_token" "ci_github_token" {
   project = doppler_project.test_proj.name
   config = doppler_config.ci_github.name
