@@ -188,11 +188,15 @@ func (ip TrustedIP) getResourceId() string {
 }
 
 func parseTrustedIPResourceId(id string) (project string, config string, ip string, err error) {
-	tokens := strings.Split(id, ".")
-	if len(tokens) != 3 {
+	tokens := strings.Split(id, "#")
+	if len(tokens) != 2 {
 		return "", "", "", errors.New("invalid trusted IP ID")
 	}
-	return tokens[0], tokens[1], tokens[2], nil
+	props := strings.Split(tokens[0], ".")
+	if len(props) != 2 {
+		return "", "", "", errors.New("invalid trusted IP ID")
+	}
+	return props[0], props[1], tokens[1], nil
 }
 
 type TrustedIPsListResponse struct {

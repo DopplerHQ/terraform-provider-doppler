@@ -34,4 +34,4 @@ resource "doppler_trusted_ip" "backend_ci_github" {
 
 ## Resource ID Format
 
-Resource IDs are in the format `<project-name>.<config-name>.<ip-address>`.
+Resource IDs are in the format `<project-name>.<config-name>#<ip-address>`.
