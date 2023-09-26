@@ -184,7 +184,8 @@ type TrustedIP struct {
 }
 
 func (ip TrustedIP) getResourceId() string {
-	return strings.Join([]string{ip.Project, ip.Config, ip.IP}, ".")
+	props := strings.Join([]string{ip.Project, ip.Config}, ".")
+	return strings.Join([]string{props, ip.IP}, "#")
 }
 
 func parseTrustedIPResourceId(id string) (project string, config string, ip string, err error) {
