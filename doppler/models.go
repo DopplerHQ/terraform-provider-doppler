@@ -201,7 +201,7 @@ func parseTrustedIPResourceId(id string) (project string, config string, ip stri
 }
 
 type TrustedIPsListResponse struct {
-	IPs []TrustedIP `json:"ips"`
+	IPs []string `json:"ips"`
 }
 
 type TrustedIPsAddResponse struct {

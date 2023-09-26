@@ -715,7 +715,22 @@ func (client APIClient) GetTrustedIPs(ctx context.Context, project, config strin
 	if err = json.Unmarshal(response.Body, &result); err != nil {
 		return nil, &APIError{Err: err, Message: "Unable to parse trusted IPs"}
 	}
-	return result.IPs, nil
+	ips := []TrustedIP{}
+	for _, ipID := range result.IPs {
+		if ipID == "" {
+			return nil, &APIError{Err: err, Message: "Unable to parse trusted IP"}
+		}
+		proj, config, ip, err := parseTrustedIPResourceId(ipID)
+		if err != nil {
+			return nil, &APIError{Err: err, Message: "Unable to parse trusted IP"}
+		}
+		ips = append(ips, TrustedIP{
+			Project: proj,
+			Config:  config,
+			IP:      ip,
+		})
+	}
+	return ips, nil
 }
 
 func (client APIClient) AddTrustedIP(ctx context.Context, project, config, ip string) (*TrustedIP, error) {
