@@ -139,7 +139,11 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 
 		return nil, &APIError{Err: err, Message: "Unable to load response", RetryAfter: retryAfter}
 	}
-	defer r.Body.Close()
+	defer func() {
+		// G307: We're OK to ignore failures to close the body.
+		// If the body wasn't read properly, we would have failed to serialize the response.
+		_ = r.Body.Close()
+	}()
 
 	body, err := ioutil.ReadAll(r.Body)
 	response := &APIResponse{HTTPResponse: r, Body: body}
