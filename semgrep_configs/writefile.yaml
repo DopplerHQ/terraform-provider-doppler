@@ -1,0 +1,12 @@
+rules:
+  - id: prohibit-writefile
+    languages:
+      - go
+    message: >
+      Use utils.WriteFile to ensure writes are atomic.
+    pattern-either:
+      - pattern: ioutil.WriteFile
+    severity: ERROR
+    paths:
+      exclude:
+        - /pkg/utils/io.go

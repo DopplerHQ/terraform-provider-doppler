@@ -165,3 +165,10 @@ Then, run the following command to initialize the workspace and apply the sample
 cd examples
 terraform init && terraform apply
 ```
+
+# Branch and Release Flow
+
+New work should branch from `master` and target `master` in PRs.
+
+To release, create a GitHub Release (and associated tag) on `master` in the format `vX.X.X`, following [semantic versioning](https://semver.org/).
+The `release` GitHub Actions workflow will automatically build and ship the new version.
