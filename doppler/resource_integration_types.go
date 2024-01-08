@@ -37,6 +37,7 @@ func resourceIntegrationTerraformCloud() *schema.Resource {
 				Description: "A Terraform Cloud API key.",
 				Type:        schema.TypeString,
 				Required:    true,
+				Sensitive:   true,
 			},
 		},
 		DataBuilder: func(d *schema.ResourceData) IntegrationData {

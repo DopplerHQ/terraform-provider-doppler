@@ -39,7 +39,7 @@ resource "doppler_secrets_sync_terraform_cloud" "backend_prod" {
 
 ### Required
 
-- `api_key` (String) A Terraform Cloud API key.
+- `api_key` (String, Sensitive) A Terraform Cloud API key.
 - `name` (String) The name of the integration
 
 ### Read-Only
