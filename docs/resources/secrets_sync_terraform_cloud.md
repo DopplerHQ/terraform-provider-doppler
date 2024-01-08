@@ -27,8 +27,8 @@ resource "doppler_secrets_sync_terraform_cloud" "backend_prod" {
   project     = "backend"
   config      = "prd"
 
-  sync_target        = "workplace"
-  workplace_id       = data.tfe_workspace.prod.id
+  sync_target        = "workspace"
+  workspace_id       = data.tfe_workspace.prod.id
   variable_sync_type = "terraform"
   name_transform     = "lowercase"
 }
@@ -43,13 +43,13 @@ resource "doppler_secrets_sync_terraform_cloud" "backend_prod" {
 - `integration` (String) The slug of the integration to use for this sync
 - `name_transform` (String) A name transform to apply before syncing secrets: "none" or "lowercase"
 - `project` (String) The name of the Doppler project
-- `sync_target` (String) Either "workplace" or "variableSet", based on the resource type to sync to
+- `sync_target` (String) Either "workspace" or "variableSet", based on the resource type to sync to
 - `variable_sync_type` (String) Either "terraform" to sync secrets as Terraform variables or "env" to sync as environment variables
 
 ### Optional
 
 - `variable_set_id` (String) The Terraform Cloud variable set ID to sync to
-- `workplace_id` (String) The Terraform Cloud workplace ID to sync to
+- `workspace_id` (String) The Terraform Cloud workspace ID to sync to
 
 ### Read-Only
 

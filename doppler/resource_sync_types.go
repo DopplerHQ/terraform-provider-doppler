@@ -78,13 +78,13 @@ func resourceSyncTerraformCloud() *schema.Resource {
 	builder := ResourceSyncBuilder{
 		DataSchema: map[string]*schema.Schema{
 			"sync_target": {
-				Description: "Either \"workplace\" or \"variableSet\", based on the resource type to sync to",
+				Description: "Either \"workspace\" or \"variableSet\", based on the resource type to sync to",
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 			},
-			"workplace_id": {
-				Description: "The Terraform Cloud workplace ID to sync to",
+			"workspace_id": {
+				Description: "The Terraform Cloud workspace ID to sync to",
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
@@ -111,7 +111,7 @@ func resourceSyncTerraformCloud() *schema.Resource {
 		DataBuilder: func(d *schema.ResourceData) IntegrationData {
 			return map[string]interface{}{
 				"sync_target":        d.Get("sync_target"),
-				"workplace_id":       d.Get("workplace_id"),
+				"workspace_id":       d.Get("workspace_id"),
 				"variable_set_id":    d.Get("variable_set_id"),
 				"variable_sync_type": d.Get("variable_sync_type"),
 				"name_transform":     d.Get("name_transform"),
