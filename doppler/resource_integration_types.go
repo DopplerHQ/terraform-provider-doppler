@@ -28,3 +28,22 @@ func resourceIntegrationAWSAssumeRoleIntegration(integrationType string) *schema
 	}
 	return builder.Build()
 }
+
+func resourceIntegrationTerraformCloud() *schema.Resource {
+	builder := ResourceIntegrationBuilder{
+		Type: "terraform_cloud",
+		DataSchema: map[string]*schema.Schema{
+			"api_key": {
+				Description: "A Terraform Cloud API key.",
+				Type:        schema.TypeString,
+				Required:    true,
+			},
+		},
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			return map[string]interface{}{
+				"api_key": d.Get("api_key"),
+			}
+		},
+	}
+	return builder.Build()
+}
