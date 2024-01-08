@@ -19,11 +19,21 @@ func resourceSyncAWSSecretsManager() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 			},
+			"tags": {
+				Description: "AWS tags to attach to the secrets",
+				Type:        schema.TypeMap,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 		DataBuilder: func(d *schema.ResourceData) IntegrationData {
 			return map[string]interface{}{
 				"region": d.Get("region"),
 				"path":   d.Get("path"),
+				"tags":   d.Get("tags"),
 			}
 		},
 	}

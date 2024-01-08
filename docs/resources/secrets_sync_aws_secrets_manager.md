@@ -71,6 +71,7 @@ resource "doppler_secrets_sync_aws_secrets_manager" "backend_prod" {
 
   region = "us-east-1"
   path   = "/backend/"
+  tags   = { myTag = "enabled" }
 }
 ```
 
@@ -84,6 +85,10 @@ resource "doppler_secrets_sync_aws_secrets_manager" "backend_prod" {
 - `path` (String) The path to the secret in AWS
 - `project` (String) The name of the Doppler project
 - `region` (String) The AWS region
+
+### Optional
+
+- `tags` (Map of String) AWS tags to attach to the secrets
 
 ### Read-Only
 
