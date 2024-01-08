@@ -88,12 +88,14 @@ func resourceSyncTerraformCloud() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
+				ExactlyOneOf: []string{"workspace_id", "variable_set_id"},
 			},
 			"variable_set_id": {
 				Description: "The Terraform Cloud variable set ID to sync to",
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
+				ExactlyOneOf: []string{"workspace_id", "variable_set_id"},
 			},
 			"variable_sync_type": {
 				Description: "Either \"terraform\" to sync secrets as Terraform variables or \"env\" to sync as environment variables",
