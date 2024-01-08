@@ -50,6 +50,9 @@ func Provider() *schema.Provider {
 
 			"doppler_integration_aws_parameter_store":  resourceIntegrationAWSAssumeRoleIntegration("aws_parameter_store"),
 			"doppler_secrets_sync_aws_parameter_store": resourceSyncAWSParameterStore(),
+
+			"doppler_integration_terraform_cloud": resourceIntegrationTerraformCloud(),
+			"doppler_secrets_sync_terraform_cloud": resourceSyncTerraformCloud(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"doppler_secrets": dataSourceSecrets(),
