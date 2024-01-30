@@ -13,19 +13,19 @@ func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"host": {
-				Description: "The Doppler API host (i.e. https://api.doppler.com)",
+				Description: "The Doppler API host (i.e. https://api.doppler.com). This can also be set via the DOPPLER_API_HOST environment variable.",
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_API_HOST", defaultAPIHost),
 			},
 			"verify_tls": {
-				Description: "Whether or not to verify TLS",
+				Description: "Whether or not to verify TLS. This can also be set via the DOPPLER_VERIFY_TLS environment variable.",
 				Type:        schema.TypeBool,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_VERIFY_TLS", true),
 			},
 			"doppler_token": {
-				Description: "A Doppler token, either a personal or service token",
+				Description: "A Doppler token, either a personal or service token. This can also be set via the DOPPLER_TOKEN environment variable.",
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_TOKEN", nil),
