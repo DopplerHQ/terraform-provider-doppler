@@ -907,3 +907,67 @@ func (client APIClient) DeleteGroup(ctx context.Context, slug string) error {
 	}
 	return nil
 }
+
+// Group Members
+
+func (client APIClient) CreateGroupMember(ctx context.Context, group string, memberType string, memberSlug string) error {
+	payload := map[string]interface{}{
+		"type": memberType,
+		"slug": memberSlug,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return &APIError{Err: err, Message: "Unable to serialize group member"}
+	}
+	_, err = client.PerformRequestWithRetry(ctx, "POST", fmt.Sprintf("/v3/workplace/groups/group/%s/members", url.QueryEscape(group)), []QueryParam{}, body)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (client APIClient) GetGroupMember(ctx context.Context, group string, memberType string, memberSlug string) error {
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/workplace/groups/group/%s/members/%s/%s", url.QueryEscape(group), url.QueryEscape(memberType), url.QueryEscape(memberSlug)), []QueryParam{}, nil)
+	if err != nil {
+		return err
+	}
+	var result GroupIsMemberResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return &APIError{Err: err, Message: "Unable to parse is group member result"}
+	}
+	if !result.IsMember {
+		return &CustomNotFoundError{Message: "Could not find requested group member"}
+	}
+	return nil
+}
+
+func (client APIClient) DeleteGroupMember(ctx context.Context, group string, memberType string, memberSlug string) error {
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/workplace/groups/group/%s/members/%s/%s", url.QueryEscape(group), url.QueryEscape(memberType), url.QueryEscape(memberSlug)), []QueryParam{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Workplace Users
+
+func (client APIClient) GetWorkplaceUser(ctx context.Context, email string) (*WorkplaceUser, error) {
+	params := []QueryParam{
+		{Key: "email", Value: email},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", "/v3/workplace/users", params, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result WorkplaceUsersListResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse workplace user"}
+	}
+	if len(result.WorkplaceUsers) > 1 {
+		return nil, &APIError{Err: err, Message: "Multiple workplace users returned"}
+	}
+	if len(result.WorkplaceUsers) == 0 {
+		return nil, &CustomNotFoundError{Message: "Could not find requested workplace user"}
+	}
+	return &result.WorkplaceUsers[0], nil
+}
