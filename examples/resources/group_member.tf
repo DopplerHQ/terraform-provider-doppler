@@ -11,7 +11,8 @@ data "doppler_user" "andre" {
 }
 
 resource "doppler_group_member" "engineering" {
-  for_each = toset([data.doppler_user.nic.id, data.doppler_user.andre.id])
-  group    = doppler_group.engineering.id
-  user     = each.value
+  for_each   = toset([data.doppler_user.nic.slug, data.doppler_user.andre.slug])
+  group_slug = doppler_group.engineering.slug
+  user_slug  = each.value
 }
+

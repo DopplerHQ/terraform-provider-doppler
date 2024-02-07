@@ -23,7 +23,7 @@ type ResourceGroupMemberBuilder struct {
 
 func (builder ResourceGroupMemberBuilder) Build() *schema.Resource {
 	resourceSchema := map[string]*schema.Schema{
-		"group": {
+		"group_slug": {
 			Description: "The slug of the Doppler group",
 			Type:        schema.TypeString,
 			Required:    true,
@@ -40,6 +40,9 @@ func (builder ResourceGroupMemberBuilder) Build() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: builder.CreateContextFunc(),
 		ReadContext:   builder.ReadContextFunc(),
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 		DeleteContext: builder.DeleteContextFunc(),
 		Schema:        resourceSchema,
 	}
@@ -50,7 +53,7 @@ func (builder ResourceGroupMemberBuilder) CreateContextFunc() schema.CreateConte
 		client := m.(APIClient)
 
 		var diags diag.Diagnostics
-		group := d.Get("group").(string)
+		group := d.Get("group_slug").(string)
 
 		memberSlug, err := builder.GetMemberSlugFunc(ctx, d, m)
 		if err != nil {
@@ -74,21 +77,9 @@ func (builder ResourceGroupMemberBuilder) ReadContextFunc() schema.ReadContextFu
 
 		var diags diag.Diagnostics
 
-		group, memberType, existingMemberSlug, err := parseGroupMemberId(d.Id())
+		group, memberType, memberSlug, err := parseGroupMemberId(d.Id())
 		if err != nil {
 			return diag.FromErr(err)
-		}
-
-		checkedMemberSlug, err := builder.GetMemberSlugFunc(ctx, d, m)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		memberSlug := *checkedMemberSlug
-
-		if memberSlug != existingMemberSlug {
-			// Because resources can identify members using mutable fields (e.g. email),
-			// we need to recheck the member to make sure that it still exists and it's still the same underlying member.
-			d.SetId(getGroupMemberId(group, builder.MemberType, memberSlug))
 		}
 
 		err = client.GetGroupMember(ctx, group, memberType, memberSlug)

@@ -10,8 +10,8 @@ func resourceGroupMemberWorkplaceUser() *schema.Resource {
 	builder := ResourceGroupMemberBuilder{
 		MemberType: "workplace_user",
 		DataSchema: map[string]*schema.Schema{
-			"user": {
-				Description: "The ID of the Doppler workplace user",
+			"user_slug": {
+				Description: "The slug of the Doppler workplace user",
 				Type:        schema.TypeString,
 				Required:    true,
 				// Members cannot be moved directly from one group to another, they must be re-created
@@ -19,7 +19,7 @@ func resourceGroupMemberWorkplaceUser() *schema.Resource {
 			},
 		},
 		GetMemberSlugFunc: func(ctx context.Context, d *schema.ResourceData, m interface{}) (*string, error) {
-			workplaceUserSlug := d.Get("user").(string)
+			workplaceUserSlug := d.Get("user_slug").(string)
 			return &workplaceUserSlug, nil
 		},
 	}
