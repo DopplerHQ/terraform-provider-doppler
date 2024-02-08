@@ -40,7 +40,8 @@ func Provider() *schema.Provider {
 
 			"doppler_service_account": resourceServiceAccount(),
 
-			"doppler_group": resourceGroup(),
+			"doppler_group":        resourceGroup(),
+			"doppler_group_member": resourceGroupMemberWorkplaceUser(),
 
 			"doppler_project_member_group":           resourceProjectMemberGroup(),
 			"doppler_project_member_service_account": resourceProjectMemberServiceAccount(),
@@ -51,11 +52,12 @@ func Provider() *schema.Provider {
 			"doppler_integration_aws_parameter_store":  resourceIntegrationAWSAssumeRoleIntegration("aws_parameter_store"),
 			"doppler_secrets_sync_aws_parameter_store": resourceSyncAWSParameterStore(),
 
-			"doppler_integration_terraform_cloud": resourceIntegrationTerraformCloud(),
+			"doppler_integration_terraform_cloud":  resourceIntegrationTerraformCloud(),
 			"doppler_secrets_sync_terraform_cloud": resourceSyncTerraformCloud(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"doppler_secrets": dataSourceSecrets(),
+			"doppler_user":    dataSourceUser(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}

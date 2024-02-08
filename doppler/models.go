@@ -218,9 +218,9 @@ type WorkplaceRole struct {
 }
 
 type ServiceAccount struct {
-	Slug          string                      `json:"slug"`
-	Name          string                      `json:"name"`
-	CreatedAt     string                      `json:"created_at"`
+	Slug          string        `json:"slug"`
+	Name          string        `json:"name"`
+	CreatedAt     string        `json:"created_at"`
 	WorkplaceRole WorkplaceRole `json:"workplace_role"`
 }
 
@@ -241,4 +241,28 @@ type Group struct {
 
 type GroupResponse struct {
 	Group Group `json:"group"`
+}
+
+type GroupIsMemberResponse struct {
+	IsMember bool `json:"isMember"`
+}
+
+type WorkplaceUser struct {
+	Slug string `json:"id"`
+}
+
+type WorkplaceUsersListResponse struct {
+	WorkplaceUsers []WorkplaceUser `json:"workplace_users"`
+}
+
+func getGroupMemberId(group string, memberType string, memberSlug string) string {
+	return strings.Join([]string{group, memberType, memberSlug}, ".")
+}
+
+func parseGroupMemberId(id string) (group string, memberType string, memberSlug string, err error) {
+	tokens := strings.Split(id, ".")
+	if len(tokens) != 3 {
+		return "", "", "", errors.New("invalid group member ID")
+	}
+	return tokens[0], tokens[1], tokens[2], nil
 }

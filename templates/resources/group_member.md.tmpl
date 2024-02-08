@@ -1,0 +1,20 @@
+---
+page_title: "doppler_group_member Resource - terraform-provider-doppler"
+subcategory: ""
+description: |-
+	Manage a Doppler user/group membership.
+---
+
+# doppler_group_member (Resource)
+
+Manage a Doppler user/group membership.
+
+## Example Usage
+
+{{tffile "examples/resources/group_member.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Resource ID Format
+
+Resource IDs are in the format `<group_slug>.workplace_user.<user_slug>`.
