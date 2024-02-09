@@ -2,12 +2,12 @@
 page_title: "doppler_user Data Source - terraform-provider-doppler"
 subcategory: "User"
 description: |-
-  Retrieve a Doppler user
+  Retrieve an existing Doppler user.
 ---
 
 # doppler_user (Data Source)
 
-Retrieve all secrets in the config.
+Retrieve an existing Doppler user.
 
 ## Example Usage
 
