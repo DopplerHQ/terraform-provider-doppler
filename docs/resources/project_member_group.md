@@ -32,7 +32,7 @@ resource "doppler_project_member_group" "backend_engineering" {
 
 ### Optional
 
-- `environments` (List of String) The environments in the project where this access will apply (null or omitted for roles with access to all environments)
+- `environments` (Set of String) The environments in the project where this access will apply (null or omitted for roles with access to all environments)
 
 ### Read-Only
 
