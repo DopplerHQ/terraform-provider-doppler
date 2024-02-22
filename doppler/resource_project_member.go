@@ -37,8 +37,27 @@ func (builder ResourceProjectMemberBuilder) Build() *schema.Resource {
 		},
 		"environments": {
 			Description: "The environments in the project where this access will apply (null or omitted for roles with access to all environments)",
-			Type:        schema.TypeList,
+			Type:        schema.TypeSet,
 			Optional:    true,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+		},
+	}
+
+	v0ResourceSchema := map[string]*schema.Schema{
+		"project": {
+			Type:     schema.TypeString,
+			Required: true,
+			ForceNew: true,
+		},
+		"role": {
+			Type:     schema.TypeString,
+			Required: true,
+		},
+		"environments": {
+			Type:     schema.TypeList,
+			Optional: true,
 			Elem: &schema.Schema{
 				Type: schema.TypeString,
 			},
@@ -48,7 +67,10 @@ func (builder ResourceProjectMemberBuilder) Build() *schema.Resource {
 	for name, subschema := range builder.DataSchema {
 		s := *subschema
 		resourceSchema[name] = &s
+		v0ResourceSchema[name] = &s
 	}
+
+	v0Resource := &schema.Resource{Schema: v0ResourceSchema}
 
 	return &schema.Resource{
 		CreateContext: builder.CreateContextFunc(),
@@ -56,7 +78,22 @@ func (builder ResourceProjectMemberBuilder) Build() *schema.Resource {
 		UpdateContext: builder.UpdateContextFunc(),
 		DeleteContext: builder.DeleteContextFunc(),
 		Schema:        resourceSchema,
+		SchemaVersion: 1,
+		StateUpgraders: []schema.StateUpgrader{
+			{
+				Type:    v0Resource.CoreConfigSchema().ImpliedType(),
+				Upgrade: resourceUpgradeV0,
+				Version: 0,
+			},
+		},
 	}
+}
+
+func resourceUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
+	// migrate from TypeList to TypeSet so that order does not matter
+	rawState["environments"] = rawState["environments"].([]interface{})
+
+	return rawState, nil
 }
 
 func (builder ResourceProjectMemberBuilder) CreateContextFunc() schema.CreateContextFunc {
@@ -67,7 +104,7 @@ func (builder ResourceProjectMemberBuilder) CreateContextFunc() schema.CreateCon
 		project := d.Get("project").(string)
 		role := d.Get("role").(string)
 
-		rawEnvironments := d.Get("environments").([]interface{})
+		rawEnvironments := d.Get("environments").(*schema.Set).List()
 		environments := make([]string, len(rawEnvironments))
 		for i, v := range rawEnvironments {
 			environments[i] = v.(string)
@@ -113,7 +150,7 @@ func (builder ResourceProjectMemberBuilder) UpdateContextFunc() schema.UpdateCon
 
 		var environments []string
 		if d.HasChange("environments") {
-			rawEnvironments := d.Get("environments").([]interface{})
+			rawEnvironments := d.Get("environments").(*schema.Set).List()
 			environments = make([]string, len(rawEnvironments))
 			for i, v := range rawEnvironments {
 				environments[i] = v.(string)
