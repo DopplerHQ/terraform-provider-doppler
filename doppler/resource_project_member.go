@@ -45,32 +45,10 @@ func (builder ResourceProjectMemberBuilder) Build() *schema.Resource {
 		},
 	}
 
-	v0ResourceSchema := map[string]*schema.Schema{
-		"project": {
-			Type:     schema.TypeString,
-			Required: true,
-			ForceNew: true,
-		},
-		"role": {
-			Type:     schema.TypeString,
-			Required: true,
-		},
-		"environments": {
-			Type:     schema.TypeList,
-			Optional: true,
-			Elem: &schema.Schema{
-				Type: schema.TypeString,
-			},
-		},
-	}
-
 	for name, subschema := range builder.DataSchema {
 		s := *subschema
 		resourceSchema[name] = &s
-		v0ResourceSchema[name] = &s
 	}
-
-	v0Resource := &schema.Resource{Schema: v0ResourceSchema}
 
 	return &schema.Resource{
 		CreateContext: builder.CreateContextFunc(),
@@ -78,22 +56,7 @@ func (builder ResourceProjectMemberBuilder) Build() *schema.Resource {
 		UpdateContext: builder.UpdateContextFunc(),
 		DeleteContext: builder.DeleteContextFunc(),
 		Schema:        resourceSchema,
-		SchemaVersion: 1,
-		StateUpgraders: []schema.StateUpgrader{
-			{
-				Type:    v0Resource.CoreConfigSchema().ImpliedType(),
-				Upgrade: resourceUpgradeV0,
-				Version: 0,
-			},
-		},
 	}
-}
-
-func resourceUpgradeV0(ctx context.Context, rawState map[string]any, meta any) (map[string]any, error) {
-	// migrate from TypeList to TypeSet so that order does not matter
-	rawState["environments"] = rawState["environments"].([]interface{})
-
-	return rawState, nil
 }
 
 func (builder ResourceProjectMemberBuilder) CreateContextFunc() schema.CreateContextFunc {
