@@ -25,11 +25,15 @@ func resourceSecret() *schema.Resource {
 				Description: "The name of the Doppler project",
 				Type:        schema.TypeString,
 				Required:    true,
+				// Secrets cannot be moved directly from one project to another, they must be re-created
+				ForceNew: true,
 			},
 			"config": {
 				Description: "The name of the Doppler config",
 				Type:        schema.TypeString,
 				Required:    true,
+				// Secrets cannot be moved directly from one config to another, they must be re-created
+				ForceNew: true,
 			},
 			"name": {
 				Description: "The name of the Doppler secret",
