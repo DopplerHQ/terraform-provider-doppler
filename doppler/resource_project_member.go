@@ -37,7 +37,7 @@ func (builder ResourceProjectMemberBuilder) Build() *schema.Resource {
 		},
 		"environments": {
 			Description: "The environments in the project where this access will apply (null or omitted for roles with access to all environments)",
-			Type:        schema.TypeList,
+			Type:        schema.TypeSet,
 			Optional:    true,
 			Elem: &schema.Schema{
 				Type: schema.TypeString,
@@ -67,7 +67,7 @@ func (builder ResourceProjectMemberBuilder) CreateContextFunc() schema.CreateCon
 		project := d.Get("project").(string)
 		role := d.Get("role").(string)
 
-		rawEnvironments := d.Get("environments").([]interface{})
+		rawEnvironments := d.Get("environments").(*schema.Set).List()
 		environments := make([]string, len(rawEnvironments))
 		for i, v := range rawEnvironments {
 			environments[i] = v.(string)
@@ -113,7 +113,7 @@ func (builder ResourceProjectMemberBuilder) UpdateContextFunc() schema.UpdateCon
 
 		var environments []string
 		if d.HasChange("environments") {
-			rawEnvironments := d.Get("environments").([]interface{})
+			rawEnvironments := d.Get("environments").(*schema.Set).List()
 			environments = make([]string, len(rawEnvironments))
 			for i, v := range rawEnvironments {
 				environments[i] = v.(string)
