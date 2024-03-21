@@ -2,6 +2,7 @@ package doppler
 
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceSyncAWSSecretsManager() *schema.Resource {
@@ -84,6 +85,60 @@ func resourceSyncAWSParameterStore() *schema.Resource {
 	return builder.Build()
 }
 
+func resourceSyncGitHubActions() *schema.Resource {
+	builder := ResourceSyncBuilder{
+		DataSchema: map[string]*schema.Schema{
+			"sync_target": {
+				Description:  "Either \"repo\" or \"org\", based on the resource type to sync to",
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice([]string{"repo", "org"}, false),
+			},
+			"repo_name": {
+				Description:  "The GitHub repo name to sync to (only used when `sync_target` is set to \"repo\")",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ExactlyOneOf: []string{"repo_name", "org_scope"},
+			},
+			"org_scope": {
+				Description:  "Either \"all\" or \"private\", based on the which repos you want to have access (only used when `sync_target` is set to \"org\")",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ExactlyOneOf: []string{"repo_name", "org_scope"},
+				ValidateFunc: validation.StringInSlice([]string{"all", "private"}, false),
+			},
+			"environment_name": {
+				Description: "The GitHub repo environment name to sync to (only used when `sync_target` is set to \"repo\")",
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+			},
+		},
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			payload := map[string]interface{}{
+				"sync_target": d.Get("sync_target"),
+			}
+			repo_name := d.Get("repo_name")
+			if repo_name != "" {
+				payload["repo_name"] = repo_name
+			}
+			org_scope := d.Get("org_scope")
+			if org_scope != "" {
+				payload["org_scope"] = org_scope
+			}
+			environment_name := d.Get("environment_name")
+			if environment_name != "" {
+				payload["environment_name"] = environment_name
+			}
+			return payload
+		},
+	}
+	return builder.Build()
+}
+
 func resourceSyncTerraformCloud() *schema.Resource {
 	builder := ResourceSyncBuilder{
 		DataSchema: map[string]*schema.Schema{
@@ -94,17 +149,17 @@ func resourceSyncTerraformCloud() *schema.Resource {
 				ForceNew:    true,
 			},
 			"workspace_id": {
-				Description: "The Terraform Cloud workspace ID to sync to",
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    true,
+				Description:  "The Terraform Cloud workspace ID to sync to",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
 				ExactlyOneOf: []string{"workspace_id", "variable_set_id"},
 			},
 			"variable_set_id": {
-				Description: "The Terraform Cloud variable set ID to sync to",
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    true,
+				Description:  "The Terraform Cloud variable set ID to sync to",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
 				ExactlyOneOf: []string{"workspace_id", "variable_set_id"},
 			},
 			"variable_sync_type": {
