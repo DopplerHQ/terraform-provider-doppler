@@ -32,3 +32,13 @@ resource "doppler_group" "engineering" {
 
 - `id` (String) The ID of this resource.
 - `slug` (String) The slug of the group
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# import using the group slug from the URL:
+# https://dashboard.doppler.com/workplace/[workplace-slug]/team/groups/[group-slug]
+terraform import doppler_group.default <group-slug>
+```

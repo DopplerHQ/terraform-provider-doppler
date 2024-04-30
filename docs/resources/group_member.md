@@ -43,6 +43,14 @@ resource "doppler_group_member" "engineering" {
 
 - `id` (String) The ID of this resource.
 
-## Resource ID Format
+## Import
 
-Resource IDs are in the format `<group_slug>.workplace_user.<user_slug>`.
+Import is supported using the following syntax:
+
+```shell
+# import using the group slug from the URL:
+# https://dashboard.doppler.com/workplace/[workplace-slug]/team/groups/[group-slug]
+# and the user slug from the URL:
+# https://dashboard.doppler.com/workplace/[workplace-slug]/team/users/[user-slug]
+terraform import doppler_group_member.default <group-slug>.workplace_user.<user-slug>
+```

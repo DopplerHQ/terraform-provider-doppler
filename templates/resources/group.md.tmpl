@@ -14,3 +14,13 @@ Manage a Doppler group.
 {{tffile "examples/resources/group.tf"}}
 
 {{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# import using the group slug from the URL:
+# https://dashboard.doppler.com/workplace/[workplace-slug]/team/groups/[group-slug]
+terraform import doppler_group.default <group-slug>
+```
