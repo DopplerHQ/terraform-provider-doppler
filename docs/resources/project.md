@@ -32,3 +32,11 @@ resource "doppler_project" "backend" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import doppler_project.default <project-name>
+```

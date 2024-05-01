@@ -50,6 +50,10 @@ output "resource_value" {
 - `computed` (String, Sensitive) The computed secret value, after resolving secret references
 - `id` (String) The ID of this resource.
 
-## Resource ID Format
+## Import
 
-Resource IDs are in the format `<project-name>.<config-name>.<secret-name>`.
+Import is supported using the following syntax:
+
+```shell
+terraform import doppler_secret.default <project-name>.<config-name>.<secret-name>
+```

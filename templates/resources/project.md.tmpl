@@ -14,3 +14,11 @@ Manage a Doppler project.
 {{tffile "examples/resources/project.tf"}}
 
 {{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import doppler_project.default <project-name>
+```

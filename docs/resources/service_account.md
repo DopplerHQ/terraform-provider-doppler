@@ -33,3 +33,13 @@ resource "doppler_service_account" "ci" {
 
 - `id` (String) The ID of this resource.
 - `slug` (String) The slug of the service account
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# import using the service account slug from the URL:
+# https://dashboard.doppler.com/workplace/[workplace-slug]/team/service_accounts/[service-account-slug]
+terraform import doppler_service_account.default <service-account-slug>
+```

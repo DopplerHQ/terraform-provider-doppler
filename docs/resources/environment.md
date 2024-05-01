@@ -32,6 +32,10 @@ resource "doppler_environment" "backend_ci" {
 
 - `id` (String) The ID of this resource.
 
-## Resource ID Format
+## Import
 
-Resource IDs are in the format `<project-name>.<environment-slug>`.
+Import is supported using the following syntax:
+
+```shell
+terraform import doppler_environment.default <project-name>.<environment-slug>
+```
