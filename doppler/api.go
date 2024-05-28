@@ -337,8 +337,69 @@ func (client APIClient) DeleteProject(ctx context.Context, name string) error {
 	return nil
 }
 
-// Project Members
+// Project Roles
 
+func (client APIClient) CreateProjectRole(ctx context.Context, name string, permissions []string) (*ProjectRole, error) {
+	payload := map[string]interface{}{
+		"name":        name,
+		"permissions": permissions,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize project role"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/projects/roles", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result CreateProjectRoleResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse project role"}
+	}
+	return &result.Role, nil
+}
+
+func (client APIClient) GetProjectRole(ctx context.Context, identifier string) (*ProjectRole, error) {
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/projects/roles/role/%s", url.PathEscape(identifier)), []QueryParam{}, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result UpdateProjectRoleResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse project role"}
+	}
+	return &result.Role, nil
+}
+
+func (client APIClient) UpdateProjectRole(ctx context.Context, identifier string, name string, permissions []string) (*ProjectRole, error) {
+	payload := map[string]interface{}{
+		"name":        name,
+		"permissions": permissions,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize project role"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "PATCH", fmt.Sprintf("/v3/projects/roles/role/%s", url.PathEscape(identifier)), []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result UpdateProjectRoleResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse project role"}
+	}
+	return &result.Role, nil
+}
+
+func (client APIClient) DeleteProjectRole(ctx context.Context, identifier string) error {
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/projects/roles/role/%s", url.PathEscape(identifier)), []QueryParam{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Project Members
 func (client APIClient) CreateProjectMember(ctx context.Context, project string, memberType string, memberSlug string, role string, environments []string) (*ProjectMember, error) {
 	payload := map[string]interface{}{
 		"project":      project,

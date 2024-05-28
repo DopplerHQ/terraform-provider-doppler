@@ -248,6 +248,26 @@ type SimpleProjectRole struct {
 	Identifier string `json:"identifier"`
 }
 
+type ProjectRole struct {
+	Identifier   string   `json:"identifier"`
+	Name         string   `json:"name"`
+	Permissions  []string `json:"permissions"`
+	CreatedAt    string   `json:"created_at"`
+	IsCustomRole bool     `json:"is_custom_role"`
+}
+
+type GetProjectRoleResponse struct {
+	Role ProjectRole `json:"role"`
+}
+
+type CreateProjectRoleResponse struct {
+	Role ProjectRole `json:"role"`
+}
+
+type UpdateProjectRoleResponse struct {
+	Role ProjectRole `json:"role"`
+}
+
 type Group struct {
 	Slug               string            `json:"slug"`
 	Name               string            `json:"name"`
