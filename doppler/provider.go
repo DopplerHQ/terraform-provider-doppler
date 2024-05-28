@@ -38,7 +38,8 @@ func Provider() *schema.Provider {
 			"doppler_config":        resourceConfig(),
 			"doppler_service_token": resourceServiceToken(),
 
-			"doppler_service_account": resourceServiceAccount(),
+			"doppler_service_account":       resourceServiceAccount(),
+			"doppler_service_account_token": resourceServiceAccountToken(),
 
 			"doppler_group":        resourceGroup(),
 			"doppler_group_member": resourceGroupMemberWorkplaceUser(),
