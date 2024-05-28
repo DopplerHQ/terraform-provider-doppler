@@ -208,6 +208,22 @@ func parseServiceTokenResourceId(id string) (project string, config string, slug
 	return tokens[0], tokens[1], tokens[2], nil
 }
 
+type ServiceAccountToken struct {
+	Name      string `json:"name"`
+	ExpiresAt string `json:"expires_at"`
+	CreatedAt string `json:"created_at"`
+	Slug      string `json:"slug"`
+}
+
+type ServiceAccountTokenResponse struct {
+	ServiceAccountToken ServiceAccountToken `json:"api_token"`
+	ApiKey              string              `json:"api_key"`
+}
+
+func (t ServiceAccountToken) getResourceId() string {
+	return t.Slug
+}
+
 type WorkplaceRole struct {
 	Name         string   `json:"name"`
 	Permissions  []string `json:"permissions"`

@@ -835,6 +835,50 @@ func (client APIClient) DeleteServiceAccount(ctx context.Context, slug string) e
 	return nil
 }
 
+// Service Account Tokens
+
+func (client APIClient) GetServiceAccountToken(ctx context.Context, serviceAccountSlug string, slug string) (ServiceAccountTokenResponse, error) {
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/workplace/service_accounts/service_account/%s/tokens/token/%s", url.QueryEscape(serviceAccountSlug), url.QueryEscape(slug)), []QueryParam{}, nil)
+	if err != nil {
+		return ServiceAccountTokenResponse{}, err
+	}
+	var result ServiceAccountTokenResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return ServiceAccountTokenResponse{}, &APIError{Err: err, Message: "Unable to parse service account tokens"}
+	}
+	return result, nil
+}
+
+func (client APIClient) CreateServiceAccountToken(ctx context.Context, serviceAccountSlug string, name string, expiresAt string) (*ServiceAccountTokenResponse, error) {
+	payload := map[string]interface{}{
+		"name": name,
+	}
+	if expiresAt != "" {
+		payload["expires_at"] = expiresAt
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize account service token"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", fmt.Sprintf("/v3/workplace/service_accounts/service_account/%s/tokens", url.QueryEscape(serviceAccountSlug)), []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ServiceAccountTokenResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse service account token"}
+	}
+	return &result, nil
+}
+
+func (client APIClient) DeleteServiceAccountToken(ctx context.Context, serviceAccountSlug string, slug string) error {
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/workplace/service_accounts/service_account/%s/tokens/token/%s", url.QueryEscape(serviceAccountSlug), url.QueryEscape(slug)), []QueryParam{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Groups
 
 func (client APIClient) GetGroup(ctx context.Context, slug string) (*Group, error) {
