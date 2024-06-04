@@ -151,6 +151,24 @@ func parseEnvironmentResourceId(id string) (project string, name string, err err
 	return tokens[0], tokens[1], nil
 }
 
+type WebhookAuth struct {
+	Type     string `json:"type"`
+	Token    string `json:"token"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type Webhook struct {
+	Slug           string   `json:"id"`
+	Url            string   `json:"url"`
+	Enabled        bool     `json:"enabled"`
+	EnabledConfigs []string `json:"enabledConfigs"`
+}
+
+type WebhookResponse struct {
+	Webhook Webhook `json:"webhook"`
+}
+
 type Config struct {
 	Slug        string `json:"slug"`
 	Name        string `json:"name"`

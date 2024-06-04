@@ -687,6 +687,145 @@ func (client APIClient) DeleteEnvironment(ctx context.Context, project string, s
 	return nil
 }
 
+// Webhooks
+
+func (client APIClient) GetWebhook(ctx context.Context, project string, slug string) (*Webhook, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/webhooks/webhook/%s", url.QueryEscape(slug)), params, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result WebhookResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse webhook"}
+	}
+	return &result.Webhook, nil
+}
+
+type CreateWebhookOptionalParameters struct {
+	Secret         string
+	Auth           *WebhookAuth
+	WebhookPayload string
+	EnabledConfigs []string
+}
+
+func (client APIClient) CreateWebhook(ctx context.Context, project string, url string, enabled bool, options *CreateWebhookOptionalParameters) (*Webhook, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+
+	payload := map[string]interface{}{
+		"url":     url,
+		"enabled": enabled,
+	}
+
+	if options != nil {
+		if options.Secret != "" {
+			payload["secret"] = options.Secret
+		}
+		if options.Auth != nil {
+			payload["authentication"] = *options.Auth
+		}
+		if options.WebhookPayload != "" {
+			payload["payload"] = options.WebhookPayload
+		}
+		if options.EnabledConfigs != nil {
+			payload["enableConfigs"] = options.EnabledConfigs
+		}
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize webhook"}
+	}
+
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/webhooks", params, body)
+	if err != nil {
+		return nil, err
+	}
+
+	var result WebhookResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse webhook"}
+	}
+	return &result.Webhook, nil
+}
+
+func (client APIClient) EnableWebhook(ctx context.Context, project string, slug string) (*Webhook, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", fmt.Sprintf("/v3/webhooks/webhook/%s/enable", url.QueryEscape(slug)), params, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result WebhookResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse webhook"}
+	}
+	return &result.Webhook, nil
+}
+
+func (client APIClient) DisableWebhook(ctx context.Context, project string, slug string) (*Webhook, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", fmt.Sprintf("/v3/webhooks/webhook/%s/disable", url.QueryEscape(slug)), params, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result WebhookResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse webhook"}
+	}
+	return &result.Webhook, nil
+}
+
+func (client APIClient) UpdateWebhook(ctx context.Context, project string, slug string, webhookUrl string, secret string, webhookPayload string, enabledConfigs []string, disabledConfigs []string, auth WebhookAuth) (*Webhook, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+
+	payload := map[string]interface{}{}
+	payload["url"] = webhookUrl
+	payload["secret"] = secret
+	payload["payload"] = webhookPayload
+	payload["enableConfigs"] = enabledConfigs
+	payload["disableConfigs"] = disabledConfigs
+	payload["authentication"] = auth
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize webhook"}
+	}
+
+	response, err := client.PerformRequestWithRetry(ctx, "PATCH", fmt.Sprintf("/v3/webhooks/webhook/%s", url.QueryEscape(slug)), params, body)
+	if err != nil {
+		return nil, err
+	}
+
+	var result WebhookResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse webhook"}
+	}
+	return &result.Webhook, nil
+}
+
+func (client APIClient) DeleteWebhook(ctx context.Context, project string, slug string) error {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/webhooks/webhook/%s", url.QueryEscape(slug)), params, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Configs
 
 func (client APIClient) GetConfig(ctx context.Context, project string, name string) (*Config, error) {
