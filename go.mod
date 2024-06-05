@@ -1,6 +1,6 @@
 module github.com/DopplerHQ/terraform-provider-doppler
 
-go 1.21
+go 1.22
 
 require github.com/hashicorp/terraform-plugin-sdk/v2 v2.33.0
 
