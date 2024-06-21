@@ -650,7 +650,7 @@ func (client APIClient) CreateEnvironment(ctx context.Context, project string, s
 	return &result.Environment, nil
 }
 
-func (client APIClient) RenameEnvironment(ctx context.Context, project string, currentSlug string, newSlug string, newName string) (*Environment, error) {
+func (client APIClient) UpdateEnvironment(ctx context.Context, project string, currentSlug string, newSlug string, newName string) (*Environment, error) {
 	params := []QueryParam{
 		{Key: "project", Value: project},
 		{Key: "environment", Value: currentSlug},

@@ -68,7 +68,7 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m in
 	newName := d.Get("name").(string)
 	newSlug := d.Get("slug").(string)
 
-	environment, err := client.RenameEnvironment(ctx, project, currentSlug, newSlug, newName)
+	environment, err := client.UpdateEnvironment(ctx, project, currentSlug, newSlug, newName)
 	if err != nil {
 		return diag.FromErr(err)
 	}
