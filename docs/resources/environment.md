@@ -28,6 +28,10 @@ resource "doppler_environment" "backend_ci" {
 - `project` (String) The name of the Doppler project where the environment is located
 - `slug` (String) The slug of the Doppler environment
 
+### Optional
+
+- `personal_configs` (Boolean) Whether or not personal configs are enabled for the environment
+
 ### Read-Only
 
 - `id` (String) The ID of this resource.

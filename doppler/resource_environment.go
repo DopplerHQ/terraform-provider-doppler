@@ -34,6 +34,12 @@ func resourceEnvironment() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 			},
+			"personal_configs": {
+				Description: "Whether or not personal configs are enabled for the environment",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+			},
 		},
 	}
 }
@@ -45,8 +51,9 @@ func resourceEnvironmentCreate(ctx context.Context, d *schema.ResourceData, m in
 	project := d.Get("project").(string)
 	slug := d.Get("slug").(string)
 	name := d.Get("name").(string)
+	personalConfigs := d.Get("personal_configs").(bool)
 
-	environment, err := client.CreateEnvironment(ctx, project, slug, name)
+	environment, err := client.CreateEnvironment(ctx, project, slug, name, personalConfigs)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -67,8 +74,9 @@ func resourceEnvironmentUpdate(ctx context.Context, d *schema.ResourceData, m in
 
 	newName := d.Get("name").(string)
 	newSlug := d.Get("slug").(string)
+	newPersonalConfigs := d.Get("personal_configs").(bool)
 
-	environment, err := client.RenameEnvironment(ctx, project, currentSlug, newSlug, newName)
+	environment, err := client.UpdateEnvironment(ctx, project, currentSlug, newSlug, newName, newPersonalConfigs)
 	if err != nil {
 		return diag.FromErr(err)
 	}
