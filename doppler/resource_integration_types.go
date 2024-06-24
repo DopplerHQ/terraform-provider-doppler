@@ -48,3 +48,23 @@ func resourceIntegrationTerraformCloud() *schema.Resource {
 	}
 	return builder.Build()
 }
+
+func resourceIntegrationFlyio() *schema.Resource {
+	builder := ResourceIntegrationBuilder{
+		Type: "flyio",
+		DataSchema: map[string]*schema.Schema{
+			"api_key": {
+				Description: "A Fly.io API key.",
+				Type:        schema.TypeString,
+				Required:    true,
+				Sensitive:   true,
+			},
+		},
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			return map[string]interface{}{
+				"api_key": d.Get("api_key"),
+			}
+		},
+	}
+	return builder.Build()
+}

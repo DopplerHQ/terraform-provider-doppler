@@ -58,5 +58,7 @@ resource "doppler_secrets_sync_aws_secrets_manager" "backend_prod" {
   region = "us-east-1"
   path   = "/backend/"
   tags   = { myTag = "enabled" }
+
+  delete_behavior = "leave_in_target"
 }
 

@@ -63,6 +63,9 @@ func Provider() *schema.Provider {
 			// creating integrations is not currently supported for GitHub Actions
 			// "doppler_integration_github_actions":  resourceIntegrationGitHubActions(),
 			"doppler_secrets_sync_github_actions": resourceSyncGitHubActions(),
+
+			"doppler_integration_flyio":  resourceIntegrationFlyio(),
+			"doppler_secrets_sync_flyio": resourceSyncFlyio(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"doppler_secrets": dataSourceSecrets(),

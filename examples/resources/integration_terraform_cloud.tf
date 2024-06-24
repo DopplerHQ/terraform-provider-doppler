@@ -17,4 +17,6 @@ resource "doppler_secrets_sync_terraform_cloud" "backend_prod" {
   workspace_id       = data.tfe_workspace.prod.id
   variable_sync_type = "terraform"
   name_transform     = "lowercase"
+
+  delete_behavior = "leave_in_target"
 }
