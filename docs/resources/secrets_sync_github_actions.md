@@ -56,6 +56,7 @@ resource "doppler_secrets_sync_github_actions" "backend_prod" {
 
 ### Optional
 
+- `delete_behavior` (String) The behavior to be performed on the secrets in the sync target when this resource is deleted or recreated. Either `leave_in_target` (default) or `delete_from_target`.
 - `environment_name` (String) The GitHub repo environment name to sync to (only used when `sync_target` is set to "repo")
 - `org_scope` (String) Either "all" or "private", based on the which repos you want to have access (only used when `sync_target` is set to "org")
 - `repo_name` (String) The GitHub repo name to sync to (only used when `sync_target` is set to "repo")

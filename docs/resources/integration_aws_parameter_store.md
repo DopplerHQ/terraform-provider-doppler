@@ -77,6 +77,8 @@ resource "doppler_secrets_sync_aws_parameter_store" "backend_prod" {
   path          = "/backend/"
   secure_string = true
   tags          = { myTag = "enabled" }
+
+  delete_behavior = "leave_in_target"
 }
 ```
 

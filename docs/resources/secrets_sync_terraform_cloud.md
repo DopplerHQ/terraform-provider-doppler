@@ -31,6 +31,8 @@ resource "doppler_secrets_sync_terraform_cloud" "backend_prod" {
   workspace_id       = data.tfe_workspace.prod.id
   variable_sync_type = "terraform"
   name_transform     = "lowercase"
+
+  delete_behavior = "leave_in_target"
 }
 ```
 
@@ -48,6 +50,7 @@ resource "doppler_secrets_sync_terraform_cloud" "backend_prod" {
 
 ### Optional
 
+- `delete_behavior` (String) The behavior to be performed on the secrets in the sync target when this resource is deleted or recreated. Either `leave_in_target` (default) or `delete_from_target`.
 - `variable_set_id` (String) The Terraform Cloud variable set ID to sync to
 - `workspace_id` (String) The Terraform Cloud workspace ID to sync to
 
