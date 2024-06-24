@@ -187,3 +187,29 @@ func resourceSyncTerraformCloud() *schema.Resource {
 	}
 	return builder.Build()
 }
+
+func resourceSyncFlyio() *schema.Resource {
+	builder := ResourceSyncBuilder{
+		DataSchema: map[string]*schema.Schema{
+			"app_id": {
+				Description: "The app ID ",
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+			},
+			"restart_machines": {
+				Description: "Whether or not to restart the Fly.io machines when secrets are updated",
+				Type:        schema.TypeBool,
+				Required:    true,
+				ForceNew:    true,
+			},
+		},
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			return map[string]interface{}{
+				"app_id":           d.Get("app_id"),
+				"restart_machines": d.Get("restart_machines"),
+			}
+		},
+	}
+	return builder.Build()
+}
