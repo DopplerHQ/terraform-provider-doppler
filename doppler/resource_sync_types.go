@@ -63,6 +63,12 @@ func resourceSyncAWSParameterStore() *schema.Resource {
 				ForceNew:    true,
 				Default:     true,
 			},
+			"kms_key_id": {
+				Description: "The AWS KMS key used to encrypt the parameter (ID, Alias, or ARN) ",
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+			},
 			"tags": {
 				Description: "AWS tags to attach to the parameters",
 				Type:        schema.TypeMap,
@@ -74,12 +80,16 @@ func resourceSyncAWSParameterStore() *schema.Resource {
 			},
 		},
 		DataBuilder: func(d *schema.ResourceData) IntegrationData {
-			return map[string]interface{}{
+			payload := map[string]interface{}{
 				"region":        d.Get("region"),
 				"path":          d.Get("path"),
 				"secure_string": d.Get("secure_string"),
 				"tags":          d.Get("tags"),
 			}
+			if kmsKeyId, ok := d.GetOk("kms_key_id"); ok {
+				payload["kms_key_id"] = kmsKeyId
+			}
+			return payload
 		},
 	}
 	return builder.Build()
