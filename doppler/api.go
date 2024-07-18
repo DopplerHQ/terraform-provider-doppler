@@ -627,11 +627,12 @@ func (client APIClient) GetEnvironment(ctx context.Context, project string, name
 	return &result.Environment, nil
 }
 
-func (client APIClient) CreateEnvironment(ctx context.Context, project string, slug string, name string) (*Environment, error) {
+func (client APIClient) CreateEnvironment(ctx context.Context, project string, slug string, name string, personalConfigs bool) (*Environment, error) {
 	payload := map[string]interface{}{
-		"project": project,
-		"name":    name,
-		"slug":    slug,
+		"project":          project,
+		"name":             name,
+		"slug":             slug,
+		"personal_configs": personalConfigs,
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -650,14 +651,15 @@ func (client APIClient) CreateEnvironment(ctx context.Context, project string, s
 	return &result.Environment, nil
 }
 
-func (client APIClient) RenameEnvironment(ctx context.Context, project string, currentSlug string, newSlug string, newName string) (*Environment, error) {
+func (client APIClient) UpdateEnvironment(ctx context.Context, project string, currentSlug string, newSlug string, newName string, personalConfigs bool) (*Environment, error) {
 	params := []QueryParam{
 		{Key: "project", Value: project},
 		{Key: "environment", Value: currentSlug},
 	}
 	payload := map[string]interface{}{
-		"slug": newSlug,
-		"name": newName,
+		"slug":             newSlug,
+		"name":             newName,
+		"personal_configs": personalConfigs,
 	}
 
 	body, err := json.Marshal(payload)
