@@ -20,6 +20,12 @@ func resourceSyncAWSSecretsManager() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 			},
+			"kms_key_id": {
+				Description: "The AWS KMS key used to encrypt the secret (ID, Alias, or ARN)",
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+			},
 			"tags": {
 				Description: "AWS tags to attach to the secrets",
 				Type:        schema.TypeMap,
@@ -29,13 +35,27 @@ func resourceSyncAWSSecretsManager() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"update_metadata": {
+				Description: "If enabled, Doppler will update the AWS secret metadata (e.g. KMS key) during every sync. If disabled, Doppler will only set secret metadata for new AWS secrets. Note that Doppler never updates tags for existing AWS secrets.",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				ForceNew:    true,
+			},
 		},
 		DataBuilder: func(d *schema.ResourceData) IntegrationData {
-			return map[string]interface{}{
+			payload := map[string]interface{}{
 				"region": d.Get("region"),
 				"path":   d.Get("path"),
 				"tags":   d.Get("tags"),
 			}
+			if kmsKeyId, ok := d.GetOk("kms_key_id"); ok {
+				payload["kms_key_id"] = kmsKeyId
+			}
+
+			if updateMetadata, ok := d.GetOk("update_metadata"); ok {
+				payload["update_metadata"] = updateMetadata
+			}
+			return payload
 		},
 	}
 	return builder.Build()
