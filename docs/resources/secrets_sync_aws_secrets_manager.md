@@ -91,7 +91,9 @@ resource "doppler_secrets_sync_aws_secrets_manager" "backend_prod" {
 ### Optional
 
 - `delete_behavior` (String) The behavior to be performed on the secrets in the sync target when this resource is deleted or recreated. Either `leave_in_target` (default) or `delete_from_target`.
+- `kms_key_id` (String) The AWS KMS key used to encrypt the secret (ID, Alias, or ARN)
 - `tags` (Map of String) AWS tags to attach to the secrets
+- `update_metadata` (Boolean) If enabled, Doppler will update the AWS secret metadata (e.g. KMS key) during every sync. If disabled, Doppler will only set secret metadata for new AWS secrets. Note that Doppler never updates tags for existing AWS secrets.
 
 ### Read-Only
 
