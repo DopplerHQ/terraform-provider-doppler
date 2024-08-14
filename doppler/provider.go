@@ -43,8 +43,9 @@ func Provider() *schema.Provider {
 			"doppler_service_account":       resourceServiceAccount(),
 			"doppler_service_account_token": resourceServiceAccountToken(),
 
-			"doppler_group":        resourceGroup(),
-			"doppler_group_member": resourceGroupMemberWorkplaceUser(),
+			"doppler_group":         resourceGroup(),
+			"doppler_group_member":  resourceGroupMemberWorkplaceUser(),
+			"doppler_group_members": resourceGroupMembers(),
 
 			"doppler_webhook": resourceWebhook(),
 

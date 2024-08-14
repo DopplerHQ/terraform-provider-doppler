@@ -54,6 +54,11 @@ type QueryParam struct {
 	Value string
 }
 
+type PageOptions struct {
+	Page    int
+	PerPage int
+}
+
 const MAX_RETRIES = 10
 
 func (e *APIError) Error() string {
@@ -1179,6 +1184,37 @@ func (client APIClient) GetGroupMember(ctx context.Context, group string, member
 
 func (client APIClient) DeleteGroupMember(ctx context.Context, group string, memberType string, memberSlug string) error {
 	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/workplace/groups/group/%s/members/%s/%s", url.QueryEscape(group), url.QueryEscape(memberType), url.QueryEscape(memberSlug)), []QueryParam{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (client APIClient) GetGroupMembers(ctx context.Context, group string, pageOptions PageOptions) ([]GroupMember, error) {
+	params := []QueryParam{
+		{Key: "page", Value: strconv.Itoa(pageOptions.Page)},
+		{Key: "per_page", Value: strconv.Itoa(pageOptions.PerPage)},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/workplace/groups/group/%s/members", url.QueryEscape(group)), params, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result GetGroupMembersResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse group members"}
+	}
+	return result.Members, nil
+}
+
+func (client APIClient) ReplaceGroupMembers(ctx context.Context, group string, members []GroupMember) error {
+	payload := map[string]interface{}{
+		"members": members,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return &APIError{Err: err, Message: "Unable to serialize group members"}
+	}
+	_, err = client.PerformRequestWithRetry(ctx, "PUT", fmt.Sprintf("/v3/workplace/groups/group/%s/members", url.QueryEscape(group)), []QueryParam{}, body)
 	if err != nil {
 		return err
 	}
