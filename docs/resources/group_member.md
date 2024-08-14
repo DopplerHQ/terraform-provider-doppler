@@ -9,6 +9,9 @@ description: |-
 
 Manage a Doppler user/group membership.
 
+**Note:** You can also exclusively manage all memberships in a group with a single resource.
+See the `doppler_group_members` resource for more information.
+
 ## Example Usage
 
 ```terraform
