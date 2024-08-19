@@ -29,6 +29,26 @@ func resourceIntegrationAWSAssumeRoleIntegration(integrationType string) *schema
 	return builder.Build()
 }
 
+func resourceIntegrationCircleCi() *schema.Resource {
+	builder := ResourceIntegrationBuilder{
+		Type: "circleci",
+		DataSchema: map[string]*schema.Schema{
+			"api_token": {
+				Description: "A CircleCI API token. See https://docs.doppler.com/docs/circleci for details.",
+				Type:        schema.TypeString,
+				Required:    true,
+				Sensitive:   true,
+			},
+		},
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			return map[string]interface{}{
+				"api_token": d.Get("api_token"),
+			}
+		},
+	}
+	return builder.Build()
+}
+
 func resourceIntegrationTerraformCloud() *schema.Resource {
 	builder := ResourceIntegrationBuilder{
 		Type: "terraform_cloud",
