@@ -115,6 +115,40 @@ func resourceSyncAWSParameterStore() *schema.Resource {
 	return builder.Build()
 }
 
+func resourceSyncCircleCi() *schema.Resource {
+	builder := ResourceSyncBuilder{
+		DataSchema: map[string]*schema.Schema{
+			"resource_type": {
+				Description:  "Either \"project\" or \"context\", based on the resource type to sync to",
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice([]string{"project", "context"}, false),
+			},
+			"resource_id": {
+				Description: "The resource ID (either project or context) to sync to",
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+			},
+			"organization_slug": {
+				Description: "The organization slug where the resource is located",
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+			},
+		},
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			return map[string]interface{}{
+				"resource_type":     d.Get("resource_type"),
+				"resource_id":       d.Get("resource_id"),
+				"organization_slug": d.Get("organization_slug"),
+			}
+		},
+	}
+	return builder.Build()
+}
+
 func resourceSyncGitHubActions() *schema.Resource {
 	builder := ResourceSyncBuilder{
 		DataSchema: map[string]*schema.Schema{
