@@ -301,6 +301,15 @@ type GroupIsMemberResponse struct {
 	IsMember bool `json:"isMember"`
 }
 
+type GroupMember struct {
+	Type string `json:"type"`
+	Slug string `json:"slug"`
+}
+
+type GetGroupMembersResponse struct {
+	Members []GroupMember `json:"members"`
+}
+
 type WorkplaceUser struct {
 	Slug string `json:"id"`
 }
