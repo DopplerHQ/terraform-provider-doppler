@@ -41,6 +41,25 @@ func resourceSyncAWSSecretsManager() *schema.Resource {
 				Optional:    true,
 				ForceNew:    true,
 			},
+			"path_behavior": {
+				Description: "The behavior to modify the provided path. Either `add_doppler_suffix` (default) which appends `doppler` to the provided path or `none` which leaves the path unchanged.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				// Implicitly defaults to "add_doppler_suffix" but not defined here to avoid state migration
+				ValidateFunc: validation.StringInSlice([]string{"add_doppler_suffix", "none"}, false),
+				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+					if oldValue == "" && newValue == "add_doppler_suffix" {
+						// Adding the default value explicitly
+						return true
+					} else if oldValue == "add_doppler_suffix" && newValue == "" {
+						// Removing the explicit default value
+						return true
+					} else {
+						return false
+					}
+				},
+			},
 		},
 		DataBuilder: func(d *schema.ResourceData) IntegrationData {
 			payload := map[string]interface{}{
@@ -51,9 +70,13 @@ func resourceSyncAWSSecretsManager() *schema.Resource {
 			if kmsKeyId, ok := d.GetOk("kms_key_id"); ok {
 				payload["kms_key_id"] = kmsKeyId
 			}
-
 			if updateMetadata, ok := d.GetOk("update_metadata"); ok {
 				payload["update_metadata"] = updateMetadata
+			}
+			if pathBehavior, ok := d.GetOk("path_behavior"); ok {
+				payload["use_doppler_suffix"] = pathBehavior == "add_doppler_suffix"
+			} else {
+				payload["use_doppler_suffix"] = true
 			}
 			return payload
 		},
