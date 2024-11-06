@@ -41,6 +41,24 @@ func resourceSyncAWSSecretsManager() *schema.Resource {
 				Optional:    true,
 				ForceNew:    true,
 			},
+
+			"update_resource_tags": {
+				Description:  "Behavior for AWS resource tags on updates (never update, upsert tags (leaving non-Doppler tags alone), replace tags (remove non-Doppler tags))",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice([]string{"never", "upsert", "replace"}, false),
+				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+					if oldValue == "" && newValue == "never" {
+						return true
+					} else if oldValue == "never" && newValue == "" {
+						return true
+					} else {
+						return newValue == oldValue
+					}
+				},
+			},
+
 			"path_behavior": {
 				Description: "The behavior to modify the provided path. Either `add_doppler_suffix` (default) which appends `doppler` to the provided path or `none` which leaves the path unchanged.",
 				Type:        schema.TypeString,
@@ -72,6 +90,9 @@ func resourceSyncAWSSecretsManager() *schema.Resource {
 			}
 			if updateMetadata, ok := d.GetOk("update_metadata"); ok {
 				payload["update_metadata"] = updateMetadata
+			}
+			if updateResourceTags, ok := d.GetOk("update_resource_tags"); ok {
+				payload["update_resource_tags"] = updateResourceTags
 			}
 			if pathBehavior, ok := d.GetOk("path_behavior"); ok {
 				payload["use_doppler_suffix"] = pathBehavior == "add_doppler_suffix"
@@ -121,6 +142,22 @@ func resourceSyncAWSParameterStore() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"update_resource_tags": {
+				Description:  "Behavior for AWS resource tags on updates (never update, upsert tags (leaving non-Doppler tags alone), replace tags (remove non-Doppler tags))",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice([]string{"never", "upsert", "replace"}, false),
+				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+					if oldValue == "" && newValue == "never" {
+						return true
+					} else if oldValue == "never" && newValue == "" {
+						return true
+					} else {
+						return newValue == oldValue
+					}
+				},
+			},
 		},
 		DataBuilder: func(d *schema.ResourceData) IntegrationData {
 			payload := map[string]interface{}{
@@ -131,6 +168,9 @@ func resourceSyncAWSParameterStore() *schema.Resource {
 			}
 			if kmsKeyId, ok := d.GetOk("kms_key_id"); ok {
 				payload["kms_key_id"] = kmsKeyId
+			}
+			if updateResourceTags, ok := d.GetOk("update_resource_tags"); ok {
+				payload["update_resource_tags"] = updateResourceTags
 			}
 			return payload
 		},
