@@ -1,6 +1,9 @@
 package doppler
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -59,6 +62,23 @@ func resourceSyncAWSSecretsManager() *schema.Resource {
 				},
 			},
 
+			"name_transform": {
+				Description:  fmt.Sprintf("An optional secret name transformer (e.g. DOPPLER_CONFIG in lower-kebab would be doppler-config). Valid transformers: %v", strings.Join(NameTransformers, ", ")),
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice(NameTransformers, false),
+				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+					if oldValue == "" && newValue == "none" {
+						return true
+					} else if oldValue == "none" && newValue == "" {
+						return true
+					} else {
+						return newValue == oldValue
+					}
+				},
+			},
+
 			"path_behavior": {
 				Description: "The behavior to modify the provided path. Either `add_doppler_suffix` (default) which appends `doppler` to the provided path or `none` which leaves the path unchanged.",
 				Type:        schema.TypeString,
@@ -93,6 +113,9 @@ func resourceSyncAWSSecretsManager() *schema.Resource {
 			}
 			if updateResourceTags, ok := d.GetOk("update_resource_tags"); ok {
 				payload["update_resource_tags"] = updateResourceTags
+			}
+			if nameTransform, ok := d.GetOk("name_transform"); ok {
+				payload["name_transform"] = nameTransform
 			}
 			if pathBehavior, ok := d.GetOk("path_behavior"); ok {
 				payload["use_doppler_suffix"] = pathBehavior == "add_doppler_suffix"
@@ -158,6 +181,22 @@ func resourceSyncAWSParameterStore() *schema.Resource {
 					}
 				},
 			},
+			"name_transform": {
+				Description:  fmt.Sprintf("An optional secret name transformer (e.g. DOPPLER_CONFIG in lower-kebab would be doppler-config). Valid transformers: %v", strings.Join(NameTransformers, ", ")),
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice(NameTransformers, false),
+				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+					if oldValue == "" && newValue == "none" {
+						return true
+					} else if oldValue == "none" && newValue == "" {
+						return true
+					} else {
+						return newValue == oldValue
+					}
+				},
+			},
 		},
 		DataBuilder: func(d *schema.ResourceData) IntegrationData {
 			payload := map[string]interface{}{
@@ -171,6 +210,9 @@ func resourceSyncAWSParameterStore() *schema.Resource {
 			}
 			if updateResourceTags, ok := d.GetOk("update_resource_tags"); ok {
 				payload["update_resource_tags"] = updateResourceTags
+			}
+			if nameTransform, ok := d.GetOk("name_transform"); ok {
+				payload["name_transform"] = nameTransform
 			}
 			return payload
 		},

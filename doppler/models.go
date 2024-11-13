@@ -329,3 +329,5 @@ func parseGroupMemberId(id string) (group string, memberType string, memberSlug 
 	}
 	return tokens[0], tokens[1], tokens[2], nil
 }
+
+var NameTransformers = []string{"none", "camel", "upper-camel", "lower-snake", "tf-var", "dotnet", "dotnet-env", "lower-kebab"}
