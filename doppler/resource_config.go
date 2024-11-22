@@ -48,7 +48,18 @@ func resourceConfigCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	environment := d.Get("environment").(string)
 	name := d.Get("name").(string)
 
-	config, err := client.CreateConfig(ctx, project, environment, name)
+	var config *Config
+	var err error
+
+	if name == environment {
+		// By definition, root configs share the same name as their environment. If the user attempted to define
+		// a resource for the root config (which would have required an environment to already be created), we
+		// should just fetch the root config instead of attempting to create it, which would fail.
+		config, err = client.GetConfig(ctx, project, name)
+	} else {
+		config, err = client.CreateConfig(ctx, project, environment, name)
+	}
+
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -109,9 +120,15 @@ func resourceConfigDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	client := m.(APIClient)
 
 	var diags diag.Diagnostics
-	project, _, name, err := parseConfigResourceId(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
+	project, env, name, err := parseConfigResourceId(d.Id())
+	if env == name {
+		return diag.Diagnostics{
+			diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Root configs do not need to be manually deleted",
+				Detail:   `Root configs are implicitly created/deleted along with their environments and cannot be manually deleted. Deleting the environment that contains this root config will result in the root config being deleted.`,
+			},
+		}
 	}
 
 	if err = client.DeleteConfig(ctx, project, name); err != nil {
