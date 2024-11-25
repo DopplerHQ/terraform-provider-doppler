@@ -41,8 +41,30 @@ func resourceConfig() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 			},
+			"inherits": {
+				Description: "A list of other Doppler config IDs that this config inherits from. IDs match the format \"projectSlug.environmentSlug.configName\" (e.g. backend.stg.stg), which is most easily retrieved as the id of a doppler_config resource (e.g. doppler_config.backend_stg.id)",
+				Optional:    true,
+				Type:        schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
+}
+
+func inheritsArgToDescriptor(inherits []interface{}) ([]ConfigDescriptor, error) {
+	var descriptors []ConfigDescriptor
+
+	for _, id := range inherits {
+		proj, _, conf, err := parseConfigResourceId(id.(string))
+		if err != nil {
+			return nil, err
+		}
+		descriptors = append(descriptors, ConfigDescriptor{ProjectSlug: proj, ConfigName: conf})
+	}
+
+	return descriptors, nil
 }
 
 func resourceConfigCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -53,6 +75,7 @@ func resourceConfigCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	environment := d.Get("environment").(string)
 	name := d.Get("name").(string)
 	inheritable := d.Get("inheritable").(bool)
+	inherits := d.Get("inherits").([]interface{})
 
 	var config *Config
 	var err error
@@ -79,6 +102,14 @@ func resourceConfigCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 	}
 
+	if len(inherits) > 0 {
+		descriptors, nil := inheritsArgToDescriptor(inherits)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		config, err = client.UpdateConfigInherits(ctx, project, name, descriptors)
+	}
+
 	d.SetId(config.getResourceId())
 
 	return diags
@@ -94,11 +125,45 @@ func resourceConfigUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 	newName := d.Get("name").(string)
 
-	config, err := client.RenameConfig(ctx, project, currentName, newName)
-	if err != nil {
-		return diag.FromErr(err)
+	if d.HasChange("name") {
+		config, err := client.RenameConfig(ctx, project, currentName, newName)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		d.SetId(config.getResourceId())
 	}
-	d.SetId(config.getResourceId())
+
+	if d.HasChange("inheritable") {
+		_, err = client.UpdateConfigInheritable(ctx, project, newName, d.Get("inheritable").(bool))
+		if err != nil {
+			oldValue, _ := d.GetChange("inheritable")
+			err2 := d.Set("inheritable", oldValue)
+			if err2 != nil {
+				return diag.FromErr(err2)
+			}
+			return diag.FromErr(err)
+		}
+	}
+
+	if d.HasChange("inherits") {
+		inherits := d.Get("inherits").([]interface{})
+
+		descriptors, nil := inheritsArgToDescriptor(inherits)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		_, err = client.UpdateConfigInherits(ctx, project, newName, descriptors)
+		if err != nil {
+			oldValue, _ := d.GetChange("inherits")
+			err2 := d.Set("inherits", oldValue)
+			if err2 != nil {
+				return diag.FromErr(err2)
+			}
+			return diag.FromErr(err)
+		}
+	}
+
 	return diags
 }
 
