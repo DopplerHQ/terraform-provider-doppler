@@ -2,6 +2,9 @@ package doppler
 
 import (
 	"context"
+	"fmt"
+	"reflect"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -36,13 +39,41 @@ func resourceConfig() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 			},
+			"descriptor": {
+				Description: "The descriptor (project.config) of the Doppler config",
+				Type:        schema.TypeString,
+				Required:    false,
+				Computed:    true,
+			},
 			"inheritable": {
 				Description: "Whether or not the Doppler config can be inherited by other configs",
 				Type:        schema.TypeBool,
 				Optional:    true,
 			},
+			"inherits": {
+				Description: "A list of other Doppler config descriptors that this config inherits from. Descriptors match the format \"project.config\" (e.g. backend.stg), which is most easily retrieved as the computed descriptor of a doppler_config resource (e.g. doppler_config.backend_stg.descriptor)",
+				Optional:    true,
+				Type:        schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
+}
+
+func inheritsArgToDescriptors(inherits []interface{}) ([]ConfigDescriptor, error) {
+	var descriptors []ConfigDescriptor
+
+	for _, descriptor := range inherits {
+		split := strings.Split(descriptor.(string), ".")
+		if len(split) != 2 {
+			return nil, fmt.Errorf("Unable to parse [%s] as descriptor", descriptor)
+		}
+		descriptors = append(descriptors, ConfigDescriptor{Project: split[0], Config: split[1]})
+	}
+
+	return descriptors, nil
 }
 
 func resourceConfigCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -53,6 +84,7 @@ func resourceConfigCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	environment := d.Get("environment").(string)
 	name := d.Get("name").(string)
 	inheritable := d.Get("inheritable").(bool)
+	inherits := d.Get("inherits").([]interface{})
 
 	var config *Config
 	var err error
@@ -70,13 +102,24 @@ func resourceConfigCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	if inheritable {
+	if err = d.Set("descriptor", fmt.Sprintf("%s.%s", config.Project, config.Name)); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if config.Inheritable != inheritable {
 		// Configs are always created as not inheritable, and inheritability cannot be specified during the creation request.
 		config, err = client.UpdateConfigInheritable(ctx, project, name, inheritable)
-
 		if err != nil {
 			return diag.FromErr(err)
 		}
+	}
+
+	descriptors, nil := inheritsArgToDescriptors(inherits)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	if !reflect.DeepEqual(config.Inherits, descriptors) {
+		config, err = client.UpdateConfigInherits(ctx, project, name, descriptors)
 	}
 
 	d.SetId(config.getResourceId())
@@ -94,11 +137,48 @@ func resourceConfigUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 	newName := d.Get("name").(string)
 
-	config, err := client.RenameConfig(ctx, project, currentName, newName)
-	if err != nil {
-		return diag.FromErr(err)
+	if d.HasChange("name") {
+		config, err := client.RenameConfig(ctx, project, currentName, newName)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		d.SetId(config.getResourceId())
+		if err = d.Set("descriptor", fmt.Sprintf("%s.%s", config.Project, config.Name)); err != nil {
+			return diag.FromErr(err)
+		}
 	}
-	d.SetId(config.getResourceId())
+
+	if d.HasChange("inheritable") {
+		_, err = client.UpdateConfigInheritable(ctx, project, newName, d.Get("inheritable").(bool))
+		if err != nil {
+			oldValue, _ := d.GetChange("inheritable")
+			err2 := d.Set("inheritable", oldValue)
+			if err2 != nil {
+				return diag.FromErr(err2)
+			}
+			return diag.FromErr(err)
+		}
+	}
+
+	if d.HasChange("inherits") {
+		inherits := d.Get("inherits").([]interface{})
+
+		descriptors, nil := inheritsArgToDescriptors(inherits)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		_, err = client.UpdateConfigInherits(ctx, project, newName, descriptors)
+		if err != nil {
+			oldValue, _ := d.GetChange("inherits")
+			err2 := d.Set("inherits", oldValue)
+			if err2 != nil {
+				return diag.FromErr(err2)
+			}
+			return diag.FromErr(err)
+		}
+	}
+
 	return diags
 }
 
@@ -128,8 +208,21 @@ func resourceConfigRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
+	if err = d.Set("descriptor", fmt.Sprintf("%s.%s", config.Project, config.Name)); err != nil {
+		return diag.FromErr(err)
+	}
 
 	if err = d.Set("inheritable", config.Inheritable); err != nil {
+		return diag.FromErr(err)
+	}
+
+	var descriptorsStrs []string
+
+	for _, descriptor := range config.Inherits {
+		descriptorsStrs = append(descriptorsStrs, fmt.Sprintf("%s.%s", descriptor.Project, descriptor.Config))
+	}
+
+	if err = d.Set("inherits", descriptorsStrs); err != nil {
 		return diag.FromErr(err)
 	}
 	return diags
@@ -140,6 +233,9 @@ func resourceConfigDelete(ctx context.Context, d *schema.ResourceData, m interfa
 
 	var diags diag.Diagnostics
 	project, env, name, err := parseConfigResourceId(d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	if env == name {
 		return diag.Diagnostics{
 			diag.Diagnostic{
