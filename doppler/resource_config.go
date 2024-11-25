@@ -36,6 +36,11 @@ func resourceConfig() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 			},
+			"inheritable": {
+				Description: "Whether or not the Doppler config can be inherited by other configs",
+				Type:        schema.TypeBool,
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -47,6 +52,7 @@ func resourceConfigCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	project := d.Get("project").(string)
 	environment := d.Get("environment").(string)
 	name := d.Get("name").(string)
+	inheritable := d.Get("inheritable").(bool)
 
 	var config *Config
 	var err error
@@ -62,6 +68,15 @@ func resourceConfigCreate(ctx context.Context, d *schema.ResourceData, m interfa
 
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if inheritable {
+		// Configs are always created as not inheritable, and inheritability cannot be specified during the creation request.
+		config, err = client.UpdateConfigInheritable(ctx, project, name, inheritable)
+
+		if err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.SetId(config.getResourceId())
@@ -113,6 +128,10 @@ func resourceConfigRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
+
+	if err = d.Set("inheritable", config.Inheritable); err != nil {
+		return diag.FromErr(err)
+	}
 	return diags
 }
 

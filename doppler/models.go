@@ -177,6 +177,12 @@ type Config struct {
 	Locked      bool   `json:"locked"`
 	Root        bool   `json:"root"`
 	CreatedAt   string `json:"created_at"`
+	Inheritable bool               `json:"inheritable"`
+}
+
+type ConfigDescriptor struct {
+	Project string `json:"project"`
+	Config  string `json:"config"`
 }
 
 type ConfigResponse struct {
