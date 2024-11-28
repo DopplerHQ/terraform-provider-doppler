@@ -94,8 +94,8 @@ resource "doppler_secrets_sync_aws_secrets_manager" "backend_prod" {
 - `kms_key_id` (String) The AWS KMS key used to encrypt the secret (ID, Alias, or ARN)
 - `path_behavior` (String) The behavior to modify the provided path. Either `add_doppler_suffix` (default) which appends `doppler` to the provided path or `none` which leaves the path unchanged.
 - `tags` (Map of String) AWS tags to attach to the secrets
-- `update_metadata` (Boolean) If enabled, Doppler will update the AWS secret metadata (e.g. KMS key) during every sync. If disabled, Doppler will only set secret metadata for new AWS secrets. Note that Doppler never updates tags for existing AWS secrets.
-- `update_resource_tags` (String) Behavior for AWS resource tags on updates (never update, upsert tags (leaving non-Doppler tags alone), replace tags (remove non-Doppler tags))
+- `update_metadata` (Boolean) If enabled, Doppler will update the AWS secret metadata (e.g. KMS key) during every sync. If disabled, Doppler will only set secret metadata for new AWS secrets.
+- `update_resource_tags` (String) Behavior for AWS resource tags on updates (`never` update, `upsert` tags (leaving non-Doppler tags alone), `replace` tags (remove non-Doppler tags))
 
 ### Read-Only
 
