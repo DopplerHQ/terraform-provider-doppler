@@ -179,6 +179,11 @@ type Config struct {
 	CreatedAt   string `json:"created_at"`
 }
 
+type ConfigDescriptor struct {
+	ProjectSlug string `json:"projectSlug"`
+	ConfigName  string `json:"configName"`
+}
+
 type ConfigResponse struct {
 	Config Config `json:"config"`
 }

@@ -36,8 +36,35 @@ func resourceConfig() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 			},
+			"inheritable": {
+				Description: "Whether or not the Doppler config can be inherited by other configs",
+				Type:        schema.TypeBool,
+				Optional:    true,
+			},
+			"inherits": {
+				Description: "A list of other Doppler config IDs that this config inherits from. IDs match the format \"projectSlug.environmentSlug.configName\" (e.g. backend.stg.stg), which is most easily retrieved as the id of a doppler_config resource (e.g. doppler_config.backend_stg.id)",
+				Optional:    true,
+				Type:        schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
+}
+
+func inheritsArgToDescriptor(inherits []interface{}) ([]ConfigDescriptor, error) {
+	var descriptors []ConfigDescriptor
+
+	for _, id := range inherits {
+		proj, _, conf, err := parseConfigResourceId(id.(string))
+		if err != nil {
+			return nil, err
+		}
+		descriptors = append(descriptors, ConfigDescriptor{ProjectSlug: proj, ConfigName: conf})
+	}
+
+	return descriptors, nil
 }
 
 func resourceConfigCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -47,10 +74,40 @@ func resourceConfigCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	project := d.Get("project").(string)
 	environment := d.Get("environment").(string)
 	name := d.Get("name").(string)
+	inheritable := d.Get("inheritable").(bool)
+	inherits := d.Get("inherits").([]interface{})
 
-	config, err := client.CreateConfig(ctx, project, environment, name)
+	var config *Config
+	var err error
+
+	if name == environment {
+		// By definition, root configs share the same name as their environment. If the user attempted to define
+		// a resource for the root config (which would have required an environment to already be created), we
+		// should just fetch the root config instead of attempting to create it, which would fail.
+		config, err = client.GetConfig(ctx, project, name)
+	} else {
+		config, err = client.CreateConfig(ctx, project, environment, name)
+	}
+
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if inheritable {
+		// Configs are always created as not inheritable, and inheritability cannot be specified during the creation request.
+		config, err = client.UpdateConfigInheritable(ctx, project, name, inheritable)
+
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
+	if len(inherits) > 0 {
+		descriptors, nil := inheritsArgToDescriptor(inherits)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		config, err = client.UpdateConfigInherits(ctx, project, name, descriptors)
 	}
 
 	d.SetId(config.getResourceId())
@@ -68,11 +125,45 @@ func resourceConfigUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 	newName := d.Get("name").(string)
 
-	config, err := client.RenameConfig(ctx, project, currentName, newName)
-	if err != nil {
-		return diag.FromErr(err)
+	if d.HasChange("name") {
+		config, err := client.RenameConfig(ctx, project, currentName, newName)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		d.SetId(config.getResourceId())
 	}
-	d.SetId(config.getResourceId())
+
+	if d.HasChange("inheritable") {
+		_, err = client.UpdateConfigInheritable(ctx, project, newName, d.Get("inheritable").(bool))
+		if err != nil {
+			oldValue, _ := d.GetChange("inheritable")
+			err2 := d.Set("inheritable", oldValue)
+			if err2 != nil {
+				return diag.FromErr(err2)
+			}
+			return diag.FromErr(err)
+		}
+	}
+
+	if d.HasChange("inherits") {
+		inherits := d.Get("inherits").([]interface{})
+
+		descriptors, nil := inheritsArgToDescriptor(inherits)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		_, err = client.UpdateConfigInherits(ctx, project, newName, descriptors)
+		if err != nil {
+			oldValue, _ := d.GetChange("inherits")
+			err2 := d.Set("inherits", oldValue)
+			if err2 != nil {
+				return diag.FromErr(err2)
+			}
+			return diag.FromErr(err)
+		}
+	}
+
 	return diags
 }
 
@@ -109,9 +200,15 @@ func resourceConfigDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	client := m.(APIClient)
 
 	var diags diag.Diagnostics
-	project, _, name, err := parseConfigResourceId(d.Id())
-	if err != nil {
-		return diag.FromErr(err)
+	project, env, name, err := parseConfigResourceId(d.Id())
+	if env == name {
+		return diag.Diagnostics{
+			diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Root configs do not need to be manually deleted",
+				Detail:   `Root configs are implicitly created/deleted along with their environments and cannot be manually deleted. Deleting the environment that contains this root config will result in the root config being deleted.`,
+			},
+		}
 	}
 
 	if err = client.DeleteConfig(ctx, project, name); err != nil {
