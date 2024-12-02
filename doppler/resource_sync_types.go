@@ -36,14 +36,14 @@ func resourceSyncAWSSecretsManager() *schema.Resource {
 				ForceNew: true,
 			},
 			"update_metadata": {
-				Description: "If enabled, Doppler will update the AWS secret metadata (e.g. KMS key) during every sync. If disabled, Doppler will only set secret metadata for new AWS secrets. Note that Doppler never updates tags for existing AWS secrets.",
+				Description: "If enabled, Doppler will update the AWS secret metadata (e.g. KMS key) during every sync. If disabled, Doppler will only set secret metadata for new AWS secrets.",
 				Type:        schema.TypeBool,
 				Optional:    true,
 				ForceNew:    true,
 			},
 
 			"update_resource_tags": {
-				Description:  "Behavior for AWS resource tags on updates (never update, upsert tags (leaving non-Doppler tags alone), replace tags (remove non-Doppler tags))",
+				Description:  "Behavior for AWS resource tags on updates (`never` update, `upsert` tags (leaving non-Doppler tags alone), `replace` tags (remove non-Doppler tags))",
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
@@ -143,7 +143,7 @@ func resourceSyncAWSParameterStore() *schema.Resource {
 				ForceNew: true,
 			},
 			"update_resource_tags": {
-				Description:  "Behavior for AWS resource tags on updates (never update, upsert tags (leaving non-Doppler tags alone), replace tags (remove non-Doppler tags))",
+				Description:  "Behavior for AWS resource tags on updates (`never` update, `upsert` tags (leaving non-Doppler tags alone), `replace` tags (remove non-Doppler tags))",
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
