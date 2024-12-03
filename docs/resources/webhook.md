@@ -15,6 +15,7 @@ Manage a Doppler Webhook.
 resource "doppler_webhook" "ci" {
   project = doppler_project.test_proj.name
   url = "https://localhost/webhook"
+  name = "My Webhook"
   secret = "my signing secret-2"
   enabled = true
   enabled_configs = [doppler_config.ci_github.name]
@@ -41,6 +42,7 @@ resource "doppler_webhook" "ci" {
 - `authentication` (Block List, Max: 1) Authentication method used by the webhook (see [below for nested schema](#nestedblock--authentication))
 - `enabled` (Boolean) Whether the webhook is enabled or disabled.  Default to true.
 - `enabled_configs` (Set of String) Configs this webhook will trigger for
+- `name` (String) Name of the webhook
 - `payload` (String, Sensitive) The webhook's payload as a JSON string.  Leave empty to use the default webhook payload
 - `secret` (String, Sensitive) Secret used for request signing
 

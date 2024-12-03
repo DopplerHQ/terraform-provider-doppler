@@ -716,6 +716,7 @@ type CreateWebhookOptionalParameters struct {
 	Auth           *WebhookAuth
 	WebhookPayload string
 	EnabledConfigs []string
+	Name           string
 }
 
 func (client APIClient) CreateWebhook(ctx context.Context, project string, url string, enabled bool, options *CreateWebhookOptionalParameters) (*Webhook, error) {
@@ -740,6 +741,9 @@ func (client APIClient) CreateWebhook(ctx context.Context, project string, url s
 		}
 		if options.EnabledConfigs != nil {
 			payload["enableConfigs"] = options.EnabledConfigs
+		}
+		if options.Name != "" {
+			payload["name"] = options.Name
 		}
 	}
 
@@ -792,7 +796,7 @@ func (client APIClient) DisableWebhook(ctx context.Context, project string, slug
 	return &result.Webhook, nil
 }
 
-func (client APIClient) UpdateWebhook(ctx context.Context, project string, slug string, webhookUrl string, secret string, webhookPayload string, enabledConfigs []string, disabledConfigs []string, auth WebhookAuth) (*Webhook, error) {
+func (client APIClient) UpdateWebhook(ctx context.Context, project string, slug string, webhookUrl string, secret string, webhookPayload string, webhookName string, enabledConfigs []string, disabledConfigs []string, auth WebhookAuth) (*Webhook, error) {
 	params := []QueryParam{
 		{Key: "project", Value: project},
 	}
@@ -801,6 +805,7 @@ func (client APIClient) UpdateWebhook(ctx context.Context, project string, slug 
 	payload["url"] = webhookUrl
 	payload["secret"] = secret
 	payload["payload"] = webhookPayload
+	payload["name"] = webhookName
 	payload["enableConfigs"] = enabledConfigs
 	payload["disableConfigs"] = disabledConfigs
 	payload["authentication"] = auth
