@@ -248,6 +248,10 @@ func resourceWebhookRead(ctx context.Context, d *schema.ResourceData, m interfac
 		return diag.FromErr(err)
 	}
 
+	if err = d.Set("name", webhook.Name); err != nil {
+		return diag.FromErr(err)
+	}
+
 	return diags
 }
 

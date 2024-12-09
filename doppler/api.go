@@ -805,7 +805,11 @@ func (client APIClient) UpdateWebhook(ctx context.Context, project string, slug 
 	payload["url"] = webhookUrl
 	payload["secret"] = secret
 	payload["payload"] = webhookPayload
-	payload["name"] = webhookName
+	if webhookName != "" {
+		payload["name"] = webhookName
+	} else {
+		payload["name"] = nil
+	}
 	payload["enableConfigs"] = enabledConfigs
 	payload["disableConfigs"] = disabledConfigs
 	payload["authentication"] = auth
