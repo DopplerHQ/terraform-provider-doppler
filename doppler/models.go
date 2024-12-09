@@ -160,6 +160,7 @@ type WebhookAuth struct {
 
 type Webhook struct {
 	Slug           string   `json:"id"`
+	Name           string   `json:"name"`
 	Url            string   `json:"url"`
 	Enabled        bool     `json:"enabled"`
 	EnabledConfigs []string `json:"enabledConfigs"`
