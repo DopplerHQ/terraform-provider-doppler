@@ -28,8 +28,14 @@ resource "doppler_config" "backend_ci_github" {
 - `name` (String) The name of the Doppler config
 - `project` (String) The name of the Doppler project where the config is located
 
+### Optional
+
+- `inheritable` (Boolean) Whether or not the Doppler config can be inherited by other configs
+- `inherits` (List of String) A list of other Doppler config descriptors that this config inherits from. Descriptors match the format "project.config" (e.g. backend.stg), which is most easily retrieved as the computed descriptor of a doppler_config resource (e.g. doppler_config.backend_stg.descriptor)
+
 ### Read-Only
 
+- `descriptor` (String) The descriptor (project.config) of the Doppler config
 - `id` (String) The ID of this resource.
 
 ## Import
