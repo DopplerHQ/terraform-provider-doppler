@@ -43,6 +43,11 @@ func resourceWebhook() *schema.Resource {
 				Optional:    true,
 				Sensitive:   true,
 			},
+			"name": {
+				Description: "Name of the webhook",
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
 			"authentication": {
 				Description: "Authentication method used by the webhook",
 				Type:        schema.TypeList,
@@ -98,6 +103,7 @@ func resourceWebhookCreate(ctx context.Context, d *schema.ResourceData, m interf
 	enabled := d.Get("enabled").(bool)
 	secret := d.Get("secret").(string)
 	payload := d.Get("payload").(string)
+	name := d.Get("name").(string)
 
 	rawEnabledConfigs := d.Get("enabled_configs").(*schema.Set).List()
 	enabledConfigs := make([]string, len(rawEnabledConfigs))
@@ -105,7 +111,7 @@ func resourceWebhookCreate(ctx context.Context, d *schema.ResourceData, m interf
 		enabledConfigs[i] = v.(string)
 	}
 
-	options := CreateWebhookOptionalParameters{Secret: secret, WebhookPayload: payload, EnabledConfigs: enabledConfigs}
+	options := CreateWebhookOptionalParameters{Secret: secret, WebhookPayload: payload, EnabledConfigs: enabledConfigs, Name: name}
 
 	authConfigList := d.Get("authentication").([]interface{})
 
@@ -141,6 +147,7 @@ func resourceWebhookUpdate(ctx context.Context, d *schema.ResourceData, m interf
 	project := d.Get("project").(string)
 	secret := d.Get("secret").(string)
 	payload := d.Get("payload").(string)
+	name := d.Get("name").(string)
 
 	if d.HasChange("enabled") {
 		if d.Get("enabled").(bool) {
@@ -204,7 +211,7 @@ func resourceWebhookUpdate(ctx context.Context, d *schema.ResourceData, m interf
 		auth = WebhookAuth{Type: "None"}
 	}
 
-	webhook, err := client.UpdateWebhook(ctx, project, slug, url, secret, payload, enabledConfigs, disabledConfigs, auth)
+	webhook, err := client.UpdateWebhook(ctx, project, slug, url, secret, payload, name, enabledConfigs, disabledConfigs, auth)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -238,6 +245,10 @@ func resourceWebhookRead(ctx context.Context, d *schema.ResourceData, m interfac
 	}
 
 	if err = d.Set("enabled_configs", webhook.EnabledConfigs); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err = d.Set("name", webhook.Name); err != nil {
 		return diag.FromErr(err)
 	}
 
