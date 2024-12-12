@@ -171,13 +171,20 @@ type WebhookResponse struct {
 }
 
 type Config struct {
-	Slug        string `json:"slug"`
-	Name        string `json:"name"`
-	Project     string `json:"project"`
-	Environment string `json:"environment"`
-	Locked      bool   `json:"locked"`
-	Root        bool   `json:"root"`
-	CreatedAt   string `json:"created_at"`
+	Slug        string             `json:"slug"`
+	Name        string             `json:"name"`
+	Project     string             `json:"project"`
+	Environment string             `json:"environment"`
+	Locked      bool               `json:"locked"`
+	Root        bool               `json:"root"`
+	CreatedAt   string             `json:"created_at"`
+	Inheritable bool               `json:"inheritable"`
+	Inherits    []ConfigDescriptor `json:"inherits"`
+}
+
+type ConfigDescriptor struct {
+	Project string `json:"project"`
+	Config  string `json:"config"`
 }
 
 type ConfigResponse struct {

@@ -903,6 +903,55 @@ func (client APIClient) RenameConfig(ctx context.Context, project string, curren
 	return &result.Config, nil
 }
 
+func (client APIClient) UpdateConfigInheritable(ctx context.Context, project string, config string, inheritable bool) (*Config, error) {
+	payload := map[string]interface{}{
+		"project":     project,
+		"config":      config,
+		"inheritable": inheritable,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize config"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/configs/config/inheritable", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ConfigResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse config"}
+	}
+	return &result.Config, nil
+}
+
+func (client APIClient) UpdateConfigInherits(ctx context.Context, project string, config string, inherits []ConfigDescriptor) (*Config, error) {
+	payload := map[string]interface{}{
+		"project":  project,
+		"config":   config,
+		"inherits": inherits,
+	}
+
+	if len(inherits) == 0 {
+		// If we don't manually instantiate an empty array here, go will marshal the inherits property as nil instead of []
+		payload["inherits"] = []ConfigDescriptor{}
+	}
+
+	body, err := json.Marshal(payload)
+
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize config"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/configs/config/inherits", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result ConfigResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse config"}
+	}
+	return &result.Config, nil
+}
+
 func (client APIClient) DeleteConfig(ctx context.Context, project string, name string) error {
 	payload := map[string]interface{}{
 		"project": project,

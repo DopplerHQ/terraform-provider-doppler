@@ -2,6 +2,9 @@ package doppler
 
 import (
 	"context"
+	"fmt"
+	"reflect"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -36,8 +39,41 @@ func resourceConfig() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 			},
+			"descriptor": {
+				Description: "The descriptor (project.config) of the Doppler config",
+				Type:        schema.TypeString,
+				Required:    false,
+				Computed:    true,
+			},
+			"inheritable": {
+				Description: "Whether or not the Doppler config can be inherited by other configs",
+				Type:        schema.TypeBool,
+				Optional:    true,
+			},
+			"inherits": {
+				Description: "A list of other Doppler config descriptors that this config inherits from. Descriptors match the format \"project.config\" (e.g. backend.stg), which is most easily retrieved as the computed descriptor of a doppler_config resource (e.g. doppler_config.backend_stg.descriptor)",
+				Optional:    true,
+				Type:        schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
+}
+
+func inheritsArgToDescriptors(inherits []interface{}) ([]ConfigDescriptor, error) {
+	var descriptors []ConfigDescriptor
+
+	for _, descriptor := range inherits {
+		split := strings.Split(descriptor.(string), ".")
+		if len(split) != 2 {
+			return nil, fmt.Errorf("Unable to parse [%s] as descriptor", descriptor)
+		}
+		descriptors = append(descriptors, ConfigDescriptor{Project: split[0], Config: split[1]})
+	}
+
+	return descriptors, nil
 }
 
 func resourceConfigCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -47,10 +83,72 @@ func resourceConfigCreate(ctx context.Context, d *schema.ResourceData, m interfa
 	project := d.Get("project").(string)
 	environment := d.Get("environment").(string)
 	name := d.Get("name").(string)
+	inheritable := d.Get("inheritable").(bool)
+	inherits := d.Get("inherits").([]interface{})
 
-	config, err := client.CreateConfig(ctx, project, environment, name)
+	var config *Config
+	var err error
+
+	if name == environment {
+		// By definition, root configs share the same name as their environment. If the user attempted to define
+		// a resource for the root config (which would have required an environment to already be created), we
+		// should just fetch the root config instead of attempting to create it, which would fail.
+		config, err = client.GetConfig(ctx, project, name)
+	} else {
+		config, err = client.CreateConfig(ctx, project, environment, name)
+	}
+
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if err = d.Set("descriptor", fmt.Sprintf("%s.%s", config.Project, config.Name)); err != nil {
+		return diag.FromErr(err)
+	}
+
+	updateInheritable := func() diag.Diagnostics {
+		if config.Inheritable != inheritable {
+			// Configs are always created as not inheritable, and inheritability cannot be specified during the creation request.
+			config, err = client.UpdateConfigInheritable(ctx, project, name, inheritable)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+		return nil
+	}
+
+	updateInherits := func() diag.Diagnostics {
+		descriptors, err := inheritsArgToDescriptors(inherits)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		if !reflect.DeepEqual(config.Inherits, descriptors) {
+			config, err = client.UpdateConfigInherits(ctx, project, name, descriptors)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+		return nil
+	}
+
+	if inheritable {
+		// Regardless of change status, if the new state of the resource is inheritable, we must always update the inherits list first.
+		// In practice, this should be a no-op or an update to an empty list because inheritable configs may not inherit but we'll let the API enforce that.
+		if subdiags := updateInherits(); subdiags != nil {
+			return subdiags
+		}
+		if subdiags := updateInheritable(); subdiags != nil {
+			return subdiags
+		}
+	} else {
+		// If the new state has inheritable as false, we must update the inheritability first
+		// because if it is changing from true to false, we need to do that before we can update the inherits list.
+		if subdiags := updateInheritable(); subdiags != nil {
+			return subdiags
+		}
+		if subdiags := updateInherits(); subdiags != nil {
+			return subdiags
+		}
 	}
 
 	d.SetId(config.getResourceId())
@@ -68,11 +166,64 @@ func resourceConfigUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	}
 	newName := d.Get("name").(string)
 
-	config, err := client.RenameConfig(ctx, project, currentName, newName)
-	if err != nil {
-		return diag.FromErr(err)
+	if d.HasChange("name") {
+		config, err := client.RenameConfig(ctx, project, currentName, newName)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		d.SetId(config.getResourceId())
+		if err = d.Set("descriptor", fmt.Sprintf("%s.%s", config.Project, config.Name)); err != nil {
+			return diag.FromErr(err)
+		}
 	}
-	d.SetId(config.getResourceId())
+
+	updateInheritable := func() diag.Diagnostics {
+		if d.HasChange("inheritable") {
+			_, err = client.UpdateConfigInheritable(ctx, project, newName, d.Get("inheritable").(bool))
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+		return nil
+	}
+
+	updateInherits := func() diag.Diagnostics {
+		if d.HasChange("inherits") {
+			inherits := d.Get("inherits").([]interface{})
+
+			descriptors, nil := inheritsArgToDescriptors(inherits)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+
+			_, err = client.UpdateConfigInherits(ctx, project, newName, descriptors)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+		return nil
+	}
+
+	if d.Get("inheritable").(bool) {
+		// Regardless of change status, if the new state of the resource is inheritable, we must always update the inherits list first.
+		// In practice, this should be a no-op or an update to an empty list because inheritable configs may not inherit but we'll let the API enforce that.
+		if subdiags := updateInherits(); subdiags != nil {
+			return subdiags
+		}
+		if subdiags := updateInheritable(); subdiags != nil {
+			return subdiags
+		}
+	} else {
+		// If the new state has inheritable as false, we must update the inheritability first
+		// because if it is changing from true to false, we need to do that before we can update the inherits list.
+		if subdiags := updateInheritable(); subdiags != nil {
+			return subdiags
+		}
+		if subdiags := updateInherits(); subdiags != nil {
+			return subdiags
+		}
+	}
+
 	return diags
 }
 
@@ -102,6 +253,23 @@ func resourceConfigRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
+	if err = d.Set("descriptor", fmt.Sprintf("%s.%s", config.Project, config.Name)); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err = d.Set("inheritable", config.Inheritable); err != nil {
+		return diag.FromErr(err)
+	}
+
+	var descriptorsStrs []string
+
+	for _, descriptor := range config.Inherits {
+		descriptorsStrs = append(descriptorsStrs, fmt.Sprintf("%s.%s", descriptor.Project, descriptor.Config))
+	}
+
+	if err = d.Set("inherits", descriptorsStrs); err != nil {
+		return diag.FromErr(err)
+	}
 	return diags
 }
 
@@ -109,9 +277,18 @@ func resourceConfigDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	client := m.(APIClient)
 
 	var diags diag.Diagnostics
-	project, _, name, err := parseConfigResourceId(d.Id())
+	project, env, name, err := parseConfigResourceId(d.Id())
 	if err != nil {
 		return diag.FromErr(err)
+	}
+	if env == name {
+		return diag.Diagnostics{
+			diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Root configs do not need to be manually deleted",
+				Detail:   `Root configs are implicitly created/deleted along with their environments and cannot be manually deleted. Deleting the environment that contains this root config will result in the root config being deleted.`,
+			},
+		}
 	}
 
 	if err = client.DeleteConfig(ctx, project, name); err != nil {
