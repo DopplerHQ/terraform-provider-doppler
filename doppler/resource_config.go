@@ -106,20 +106,49 @@ func resourceConfigCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		return diag.FromErr(err)
 	}
 
-	if config.Inheritable != inheritable {
-		// Configs are always created as not inheritable, and inheritability cannot be specified during the creation request.
-		config, err = client.UpdateConfigInheritable(ctx, project, name, inheritable)
+	updateInheritable := func() diag.Diagnostics {
+		if config.Inheritable != inheritable {
+			// Configs are always created as not inheritable, and inheritability cannot be specified during the creation request.
+			config, err = client.UpdateConfigInheritable(ctx, project, name, inheritable)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+		return nil
+	}
+
+	updateInherits := func() diag.Diagnostics {
+		descriptors, err := inheritsArgToDescriptors(inherits)
 		if err != nil {
 			return diag.FromErr(err)
 		}
+		if !reflect.DeepEqual(config.Inherits, descriptors) {
+			config, err = client.UpdateConfigInherits(ctx, project, name, descriptors)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+		return nil
 	}
 
-	descriptors, nil := inheritsArgToDescriptors(inherits)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	if !reflect.DeepEqual(config.Inherits, descriptors) {
-		config, err = client.UpdateConfigInherits(ctx, project, name, descriptors)
+	if inheritable {
+		// Regardless of change status, if the new state of the resource is inheritable, we must always update the inherits list first.
+		// In practice, this should be a no-op or an update to an empty list because inheritable configs may not inherit but we'll let the API enforce that.
+		if subdiags := updateInherits(); subdiags != nil {
+			return subdiags
+		}
+		if subdiags := updateInheritable(); subdiags != nil {
+			return subdiags
+		}
+	} else {
+		// If the new state has inheritable as false, we must update the inheritability first
+		// because if it is changing from true to false, we need to do that before we can update the inherits list.
+		if subdiags := updateInheritable(); subdiags != nil {
+			return subdiags
+		}
+		if subdiags := updateInherits(); subdiags != nil {
+			return subdiags
+		}
 	}
 
 	d.SetId(config.getResourceId())
@@ -148,34 +177,50 @@ func resourceConfigUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		}
 	}
 
-	if d.HasChange("inheritable") {
-		_, err = client.UpdateConfigInheritable(ctx, project, newName, d.Get("inheritable").(bool))
-		if err != nil {
-			oldValue, _ := d.GetChange("inheritable")
-			err2 := d.Set("inheritable", oldValue)
-			if err2 != nil {
-				return diag.FromErr(err2)
+	updateInheritable := func() diag.Diagnostics {
+		if d.HasChange("inheritable") {
+			_, err = client.UpdateConfigInheritable(ctx, project, newName, d.Get("inheritable").(bool))
+			if err != nil {
+				return diag.FromErr(err)
 			}
-			return diag.FromErr(err)
 		}
+		return nil
 	}
 
-	if d.HasChange("inherits") {
-		inherits := d.Get("inherits").([]interface{})
+	updateInherits := func() diag.Diagnostics {
+		if d.HasChange("inherits") {
+			inherits := d.Get("inherits").([]interface{})
 
-		descriptors, nil := inheritsArgToDescriptors(inherits)
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		_, err = client.UpdateConfigInherits(ctx, project, newName, descriptors)
-		if err != nil {
-			oldValue, _ := d.GetChange("inherits")
-			err2 := d.Set("inherits", oldValue)
-			if err2 != nil {
-				return diag.FromErr(err2)
+			descriptors, nil := inheritsArgToDescriptors(inherits)
+			if err != nil {
+				return diag.FromErr(err)
 			}
-			return diag.FromErr(err)
+
+			_, err = client.UpdateConfigInherits(ctx, project, newName, descriptors)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+		return nil
+	}
+
+	if d.Get("inheritable").(bool) {
+		// Regardless of change status, if the new state of the resource is inheritable, we must always update the inherits list first.
+		// In practice, this should be a no-op or an update to an empty list because inheritable configs may not inherit but we'll let the API enforce that.
+		if subdiags := updateInherits(); subdiags != nil {
+			return subdiags
+		}
+		if subdiags := updateInheritable(); subdiags != nil {
+			return subdiags
+		}
+	} else {
+		// If the new state has inheritable as false, we must update the inheritability first
+		// because if it is changing from true to false, we need to do that before we can update the inherits list.
+		if subdiags := updateInheritable(); subdiags != nil {
+			return subdiags
+		}
+		if subdiags := updateInherits(); subdiags != nil {
+			return subdiags
 		}
 	}
 
