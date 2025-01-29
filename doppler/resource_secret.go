@@ -59,6 +59,16 @@ func resourceSecret() *schema.Resource {
 				Computed:    true,
 				Sensitive:   true,
 			},
+			"value_type": {
+				Description: "The value type of the secret",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "string",
+				ValidateFunc: validation.StringInSlice([]string{
+					"string", "json", "json5", "boolean", "integer", "decimal", "email",
+					"url", "uuidv4", "cuid2", "ulid", "datetime8601", "date8601", "yaml",
+				}, false),
+			},
 		},
 		CustomizeDiff: customdiff.ComputedIf("computed", func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) bool {
 			return d.HasChange("value")
@@ -75,11 +85,13 @@ func resourceSecretUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 	name := d.Get("name").(string)
 	value := d.Get("value").(string)
 	visibility := d.Get("visibility").(string)
+	valueType := d.Get("value_type").(string)
 
 	changeRequest := ChangeRequest{
 		Name:       name,
 		Value:      &value,
 		Visibility: visibility,
+		ValueType:  ValueType{Type: valueType},
 	}
 	if !d.IsNewResource() {
 		previousNameValue, _ := d.GetChange("name")
@@ -156,6 +168,10 @@ func resourceSecretRead(ctx context.Context, d *schema.ResourceData, m interface
 	}
 
 	if err = d.Set("visibility", secret.Value.RawVisibility); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err = d.Set("value_type", secret.Value.RawValueType.Type); err != nil {
 		return diag.FromErr(err)
 	}
 

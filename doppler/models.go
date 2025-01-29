@@ -36,10 +36,12 @@ type Secret struct {
 }
 
 type SecretValue struct {
-	Raw                *string `json:"raw,omitempty"`
-	Computed           *string `json:"computed,omitempty"`
-	RawVisibility      *string `json:"rawVisibility,omitempty"`
-	ComputedVisibility *string `json:"computedVisibility,omitempty"`
+	Raw                *string    `json:"raw,omitempty"`
+	Computed           *string    `json:"computed,omitempty"`
+	RawVisibility      *string    `json:"rawVisibility,omitempty"`
+	ComputedVisibility *string    `json:"computedVisibility,omitempty"`
+	RawValueType       *ValueType `json:"rawValueType,omitempty"`
+	ComputedValueType  *ValueType `json:"computedValueType,omitempty"`
 }
 
 func getSecretId(project string, config string, name string) string {
@@ -55,13 +57,18 @@ func parseSecretId(id string) (project string, config string, name string, err e
 }
 
 type ChangeRequest struct {
-	OriginalName       *string `json:"originalName,omitempty"`
-	OriginalValue      *string `json:"originalValue,omitempty"`
-	OriginalVisibility *string `json:"originalVisibility,omitempty"`
-	Name               string  `json:"name"`
-	Value              *string `json:"value"`
-	ShouldDelete       bool    `json:"shouldDelete"`
-	Visibility         string  `json:"visibility,omitempty"`
+	OriginalName       *string   `json:"originalName,omitempty"`
+	OriginalValue      *string   `json:"originalValue,omitempty"`
+	OriginalVisibility *string   `json:"originalVisibility,omitempty"`
+	Name               string    `json:"name"`
+	Value              *string   `json:"value"`
+	ShouldDelete       bool      `json:"shouldDelete"`
+	Visibility         string    `json:"visibility,omitempty"`
+	ValueType          ValueType `json:"valueType,omitempty"`
+}
+
+type ValueType struct {
+	Type string `json:"type"`
 }
 
 type Project struct {
