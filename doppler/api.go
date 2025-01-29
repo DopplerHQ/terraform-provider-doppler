@@ -1301,3 +1301,61 @@ func (client APIClient) GetWorkplaceUser(ctx context.Context, email string) (*Wo
 	}
 	return &result.WorkplaceUsers[0], nil
 }
+
+// Change Request Policies
+
+func (client APIClient) GetChangeRequestPolicy(ctx context.Context, slug string) (*ChangeRequestPolicy, error) {
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/workplace/change_request_policies/change_request_policy/%s", url.QueryEscape(slug)), nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result ChangeRequestPolicyResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse change request policy"}
+	}
+	return &result.Policy, nil
+}
+
+func (client APIClient) CreateChangeRequestPolicy(ctx context.Context, policy *ChangeRequestPolicy) (*ChangeRequestPolicy, error) {
+	body, err := json.Marshal(policy)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize change request policy"}
+	}
+
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/workplace/change_request_policies", nil, body)
+	if err != nil {
+		return nil, err
+	}
+
+	var result ChangeRequestPolicyResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse change request policy"}
+	}
+	return &result.Policy, nil
+}
+
+func (client APIClient) UpdateChangeRequestPolicy(ctx context.Context, policy *ChangeRequestPolicy) (*ChangeRequestPolicy, error) {
+	body, err := json.Marshal(policy)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize change request policy"}
+	}
+
+	response, err := client.PerformRequestWithRetry(ctx, "POST", fmt.Sprintf("/v3/workplace/change_request_policies/change_request_policy/%s", url.QueryEscape(policy.Slug)), nil, body)
+	if err != nil {
+		return nil, err
+	}
+
+	var result ChangeRequestPolicyResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse change request policy"}
+	}
+	return &result.Policy, nil
+}
+
+func (client APIClient) DeleteChangeRequestPolicy(ctx context.Context, slug string) error {
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/workplace/change_request_policies/change_request_policy/%s", url.QueryEscape(slug)), nil, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
