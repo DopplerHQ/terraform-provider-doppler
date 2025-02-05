@@ -1,0 +1,42 @@
+name: Validate tfdocs Consistency
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  validate-tfdocs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "^1.22"
+      - run: go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest
+
+      - name: Compute initial hash of docs directory
+        run: |
+          find docs -type f -exec sha256sum {} + | sort -k2 | sha256sum > initial_hash.txt
+          cat initial_hash.txt
+
+      - name: Generate docs
+        run: $HOME/go/bin/tfplugindocs
+
+      - name: Compute final hash of docs directory
+        run: |
+          find docs -type f -exec sha256sum {} + | sort -k2 | sha256sum > final_hash.txt
+          cat final_hash.txt
+
+      - name: Compare hashes and fail if different
+        run: |
+          if ! diff initial_hash.txt final_hash.txt; then
+            echo "Docs are not up to date! Run 'make tfplugindocs' and commit the changes."
+            exit 1
+          else
+            echo "Docs are up to date."
+          fi
