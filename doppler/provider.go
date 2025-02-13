@@ -70,6 +70,9 @@ func Provider() *schema.Provider {
 
 			"doppler_integration_flyio":  resourceIntegrationFlyio(),
 			"doppler_secrets_sync_flyio": resourceSyncFlyio(),
+
+			"doppler_integration_azure_vault_service_principal":  resourceIntegrationAzureVaultServicePrincipal(),
+			"doppler_secrets_sync_azure_vault_service_principal": resourceSyncAzureVaultServicePrincipal(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"doppler_secrets": dataSourceSecrets(),
