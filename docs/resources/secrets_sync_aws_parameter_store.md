@@ -99,6 +99,7 @@ resource "doppler_secrets_sync_aws_parameter_store" "backend_prod" {
 - `kms_key_id` (String) The AWS KMS key used to encrypt the parameter (ID, Alias, or ARN)
 - `name_transform` (String) An optional secret name transformer (e.g. DOPPLER_CONFIG in lower-kebab would be doppler-config). Valid transformers: none, camel, upper-camel, lower-snake, tf-var, dotnet, dotnet-env, lower-kebab
 - `secure_string` (Boolean) Whether or not the parameters are stored as a secure string
+- `sync_strategy` (String) Determines whether secrets are synced to a single secret (`single-secret`) as a JSON object or multiple discrete secrets (`multi-secret`). Defaults to `multi-secret` if unspecified.
 - `tags` (Map of String) AWS tags to attach to the parameters
 - `update_resource_tags` (String) Behavior for AWS resource tags on updates (`never` update, `upsert` tags (leaving non-Doppler tags alone), `replace` tags (remove non-Doppler tags))
 

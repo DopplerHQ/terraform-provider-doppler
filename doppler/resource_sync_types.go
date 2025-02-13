@@ -44,7 +44,6 @@ func resourceSyncAWSSecretsManager() *schema.Resource {
 				Optional:    true,
 				ForceNew:    true,
 			},
-
 			"update_resource_tags": {
 				Description:  "Behavior for AWS resource tags on updates (`never` update, `upsert` tags (leaving non-Doppler tags alone), `replace` tags (remove non-Doppler tags))",
 				Type:         schema.TypeString,
@@ -61,7 +60,6 @@ func resourceSyncAWSSecretsManager() *schema.Resource {
 					}
 				},
 			},
-
 			"name_transform": {
 				Description:  fmt.Sprintf("An optional secret name transformer (e.g. DOPPLER_CONFIG in lower-kebab would be doppler-config). Valid transformers: %v", strings.Join(NameTransformers, ", ")),
 				Type:         schema.TypeString,
@@ -78,7 +76,6 @@ func resourceSyncAWSSecretsManager() *schema.Resource {
 					}
 				},
 			},
-
 			"path_behavior": {
 				Description: "The behavior to modify the provided path. Either `add_doppler_suffix` (default) which appends `doppler` to the provided path or `none` which leaves the path unchanged.",
 				Type:        schema.TypeString,
@@ -95,6 +92,22 @@ func resourceSyncAWSSecretsManager() *schema.Resource {
 						return true
 					} else {
 						return false
+					}
+				},
+			},
+			"sync_strategy": {
+				Description:  "Determines whether secrets are synced to a single secret (`single-secret`) as a JSON object or multiple discrete secrets (`multi-secret`). Defaults to `single-secret` if unspecified.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice([]string{"single-secret", "multi-secret"}, false),
+				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+					if oldValue == "" && newValue == "single-secret" {
+						return true
+					} else if oldValue == "single-secret" && newValue == "" {
+						return true
+					} else {
+						return newValue == oldValue
 					}
 				},
 			},
@@ -121,6 +134,9 @@ func resourceSyncAWSSecretsManager() *schema.Resource {
 				payload["use_doppler_suffix"] = pathBehavior == "add_doppler_suffix"
 			} else {
 				payload["use_doppler_suffix"] = true
+			}
+			if syncStrategy, ok := d.GetOk("sync_strategy"); ok {
+				payload["sync_strategy"] = syncStrategy
 			}
 			return payload
 		},
@@ -197,6 +213,22 @@ func resourceSyncAWSParameterStore() *schema.Resource {
 					}
 				},
 			},
+			"sync_strategy": {
+				Description:  "Determines whether secrets are synced to a single secret (`single-secret`) as a JSON object or multiple discrete secrets (`multi-secret`). Defaults to `multi-secret` if unspecified.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice([]string{"single-secret", "multi-secret"}, false),
+				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+					if oldValue == "" && newValue == "multi-secret" {
+						return true
+					} else if oldValue == "multi-secret" && newValue == "" {
+						return true
+					} else {
+						return newValue == oldValue
+					}
+				},
+			},
 		},
 		DataBuilder: func(d *schema.ResourceData) IntegrationData {
 			payload := map[string]interface{}{
@@ -213,6 +245,9 @@ func resourceSyncAWSParameterStore() *schema.Resource {
 			}
 			if nameTransform, ok := d.GetOk("name_transform"); ok {
 				payload["name_transform"] = nameTransform
+			}
+			if syncStrategy, ok := d.GetOk("sync_strategy"); ok {
+				payload["sync_strategy"] = syncStrategy
 			}
 			return payload
 		},
