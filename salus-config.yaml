@@ -26,3 +26,14 @@ scanner_configs:
   GoVersionScanner:
     error:
       min_version: "1.22.0"
+
+  GoOSV:
+    exceptions:
+      - advisory_id: GHSA-29qp-crvh-w22m
+        changed_by: nmanoogian
+        notes: This advisory has been withdrawn
+        expiration: "2026-01-01"
+      - advisory_id: GO-2025-3408
+        changed_by: nmanoogian
+        notes: This advisory has been withdrawn
+        expiration: "2026-01-01"
