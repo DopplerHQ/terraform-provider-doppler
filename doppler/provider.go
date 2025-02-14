@@ -70,6 +70,11 @@ func Provider() *schema.Provider {
 
 			"doppler_integration_flyio":  resourceIntegrationFlyio(),
 			"doppler_secrets_sync_flyio": resourceSyncFlyio(),
+
+			// creating Azure Vault oauth integrations is not currently supported
+			// "doppler_integration_azure_vault":  resourceIntegrationAzureVault(),
+			"doppler_integration_azure_vault_service_principal": resourceIntegrationAzureVaultServicePrincipal(),
+			"doppler_secrets_sync_azure_vault":                  resourceSyncAzureVault(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"doppler_secrets": dataSourceSecrets(),

@@ -88,3 +88,37 @@ func resourceIntegrationFlyio() *schema.Resource {
 	}
 	return builder.Build()
 }
+
+func resourceIntegrationAzureVaultServicePrincipal() *schema.Resource {
+	builder := ResourceIntegrationBuilder{
+		Type: "azure_vault_service_principal",
+		DataSchema: map[string]*schema.Schema{
+			"client_id": {
+				Description: "The Service Principal Client ID. See https://docs.doppler.com/docs/azure-key-vault#custom-service-principal for details.",
+				Type:        schema.TypeString,
+				Required:    true,
+				Sensitive:   false,
+			},
+			"client_secret": {
+				Description: "The Service Principal Client Secret. See https://docs.doppler.com/docs/azure-key-vault#custom-service-principal for details.",
+				Type:        schema.TypeString,
+				Required:    true,
+				Sensitive:   true,
+			},
+			"tenant_id": {
+				Description: "The Service Principal Tenant ID. See https://docs.doppler.com/docs/azure-key-vault#custom-service-principal for details.",
+				Type:        schema.TypeString,
+				Required:    true,
+				Sensitive:   false,
+			},
+		},
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			return map[string]interface{}{
+				"clientId":     d.Get("client_id"),
+				"clientSecret": d.Get("client_secret"),
+				"tenantId":     d.Get("tenant_id"),
+			}
+		},
+	}
+	return builder.Build()
+}

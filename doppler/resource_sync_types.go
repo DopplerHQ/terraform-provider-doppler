@@ -2,6 +2,7 @@ package doppler
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -413,6 +414,48 @@ func resourceSyncFlyio() *schema.Resource {
 				"app_id":           d.Get("app_id"),
 				"restart_machines": d.Get("restart_machines"),
 			}
+		},
+	}
+	return builder.Build()
+}
+
+func resourceSyncAzureVault() *schema.Resource {
+	vault_uri_regex, _ := regexp.Compile("^https://.*/$")
+	single_secret_name_regex, _ := regexp.Compile("^[a-zA-Z0-9-]{1,127}$")
+	builder := ResourceSyncBuilder{
+		DataSchema: map[string]*schema.Schema{
+			"sync_strategy": {
+				Description:  "Determines whether secrets are synced to a single secret (`single-secret`) as a JSON object or multiple discrete secrets (`multi-secret`).",
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice([]string{"single-secret", "multi-secret"}, false),
+			},
+			"vault_uri": {
+				Description:  "The Azure Vault URI for the vault secrets will be synced to.",
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringMatch(vault_uri_regex, ""),
+			},
+			"single_secret_name": {
+				Description:  "The name of the secret being synced to when using the \"single-secret\" sync strategy. Required when using \"single-secret\" sync strategy.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringMatch(single_secret_name_regex, ""),
+			},
+		},
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			payload := map[string]interface{}{
+				"sync_strategy": d.Get("sync_strategy"),
+				"vault_uri":     d.Get("vault_uri"),
+			}
+			single_secret_name := d.Get("single_secret_name")
+			if single_secret_name != "" {
+				payload["single_secret_name"] = single_secret_name
+			}
+			return payload
 		},
 	}
 	return builder.Build()
