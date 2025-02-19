@@ -345,4 +345,38 @@ func parseGroupMemberId(id string) (group string, memberType string, memberSlug 
 	return tokens[0], tokens[1], tokens[2], nil
 }
 
+type ChangeRequestPolicySubject struct {
+	Type string `json:"type"`
+	Slug string `json:"slug"`
+}
+
+type ChangeRequestPolicyRule struct {
+	Type     string                       `json:"type"`
+	Count    int                          `json:"count,omitempty"`
+	Subjects []ChangeRequestPolicySubject `json:"subjects,omitempty"`
+}
+
+type ChangeRequestPolicyTargetProject struct {
+	All         bool     `json:"all"`
+	EnvSlugs    []string `json:"envSlugs,omitempty"`
+	ConfigNames []string `json:"configNames,omitempty"`
+}
+
+type ChangeRequestPolicyTargets struct {
+	AllProjects bool                                        `json:"allProjects"`
+	Projects    map[string]ChangeRequestPolicyTargetProject `json:"projects"`
+}
+
+type ChangeRequestPolicy struct {
+	Slug        string                     `json:"id"`
+	Name        string                     `json:"name"`
+	Description string                     `json:"description"`
+	Rules       []ChangeRequestPolicyRule  `json:"rules"`
+	Targets     ChangeRequestPolicyTargets `json:"targets"`
+}
+
+type ChangeRequestPolicyResponse struct {
+	Policy ChangeRequestPolicy `json:"policy"`
+}
+
 var NameTransformers = []string{"none", "camel", "upper-camel", "lower-snake", "tf-var", "dotnet", "dotnet-env", "lower-kebab"}
