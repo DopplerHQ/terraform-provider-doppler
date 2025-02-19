@@ -91,7 +91,7 @@ func resourceSecretUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		Name:       name,
 		Value:      &value,
 		Visibility: visibility,
-		ValueType:  ValueType{Type: valueType},
+		ValueType:  &ValueType{Type: valueType},
 	}
 	if !d.IsNewResource() {
 		previousNameValue, _ := d.GetChange("name")

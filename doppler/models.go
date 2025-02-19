@@ -57,14 +57,14 @@ func parseSecretId(id string) (project string, config string, name string, err e
 }
 
 type ChangeRequest struct {
-	OriginalName       *string   `json:"originalName,omitempty"`
-	OriginalValue      *string   `json:"originalValue,omitempty"`
-	OriginalVisibility *string   `json:"originalVisibility,omitempty"`
-	Name               string    `json:"name"`
-	Value              *string   `json:"value"`
-	ShouldDelete       bool      `json:"shouldDelete"`
-	Visibility         string    `json:"visibility,omitempty"`
-	ValueType          ValueType `json:"valueType,omitempty"`
+	OriginalName       *string    `json:"originalName,omitempty"`
+	OriginalValue      *string    `json:"originalValue,omitempty"`
+	OriginalVisibility *string    `json:"originalVisibility,omitempty"`
+	Name               string     `json:"name"`
+	Value              *string    `json:"value"`
+	ShouldDelete       bool       `json:"shouldDelete"`
+	Visibility         string     `json:"visibility,omitempty"`
+	ValueType          *ValueType `json:"valueType,omitempty"`
 }
 
 type ValueType struct {
