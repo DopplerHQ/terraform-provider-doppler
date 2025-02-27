@@ -33,6 +33,7 @@ jobs:
           cat final_hash.txt
 
       - name: Compare hashes and fail if different
+        id: compare_hashes
         run: |
           if ! diff initial_hash.txt final_hash.txt; then
             echo "Docs are not up to date! Run 'make tfplugindocs' and commit the changes."
@@ -40,3 +41,13 @@ jobs:
           else
             echo "Docs are up to date."
           fi
+
+      - name: Comment PR
+        if: always()
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            ## :warning: Docs are not up to date!
+            These docs aren't rendered into markdown automatically and you need to generate them manually with `make tfdocs` command.
+          mode: ${{ steps.compare_hashes.outcome == 'failure' && 'recreate' || 'delete' }}
+          comment-tag: compare-hashes
