@@ -43,7 +43,7 @@ jobs:
           fi
 
       - name: Comment PR
-        if: always()
+        if: always() && github.event_name == 'pull_request'
         uses: thollander/actions-comment-pull-request@v3
         with:
           message: |
