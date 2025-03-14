@@ -40,6 +40,8 @@ func Provider() *schema.Provider {
 
 			"doppler_project_role": resourceProjectRole(),
 
+			"doppler_workplace_role": resourceWorkplaceRole(),
+
 			"doppler_service_account":       resourceServiceAccount(),
 			"doppler_service_account_token": resourceServiceAccountToken(),
 
