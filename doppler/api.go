@@ -1359,3 +1359,65 @@ func (client APIClient) DeleteChangeRequestPolicy(ctx context.Context, slug stri
 	}
 	return nil
 }
+
+// Workplace Roles
+
+func (client APIClient) CreateWorkplaceRole(ctx context.Context, name string, permissions []string) (*WorkplaceRole, error) {
+	payload := map[string]interface{}{
+		"name":        name,
+		"permissions": permissions,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize workplace role"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/workplace/roles", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result CreateWorkplaceRoleResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse workplace role"}
+	}
+	return &result.Role, nil
+}
+
+func (client APIClient) GetWorkplaceRole(ctx context.Context, identifier string) (*WorkplaceRole, error) {
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/workplace/roles/role/%s", url.PathEscape(identifier)), []QueryParam{}, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result UpdateWorkplaceRoleResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse workplace role"}
+	}
+	return &result.Role, nil
+}
+
+func (client APIClient) UpdateWorkplaceRole(ctx context.Context, identifier string, name string, permissions []string) (*WorkplaceRole, error) {
+	payload := map[string]interface{}{
+		"name":        name,
+		"permissions": permissions,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize workplace role"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "PATCH", fmt.Sprintf("/v3/workplace/roles/role/%s", url.PathEscape(identifier)), []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result UpdateWorkplaceRoleResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse workplace role"}
+	}
+	return &result.Role, nil
+}
+
+func (client APIClient) DeleteWorkplaceRole(ctx context.Context, identifier string) error {
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/workplace/roles/role/%s", url.PathEscape(identifier)), []QueryParam{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
