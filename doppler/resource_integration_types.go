@@ -122,3 +122,30 @@ func resourceIntegrationAzureVaultServicePrincipal() *schema.Resource {
 	}
 	return builder.Build()
 }
+
+func resourceIntegrationGCPSecretManager() *schema.Resource {
+	builder := ResourceIntegrationBuilder{
+		Type: "gcp_secret_manager",
+		DataSchema: map[string]*schema.Schema{
+			"gcp_key": {
+				Description: "The IAM Service Account JSON key. See https://docs.doppler.com/docs/gcp-secret-manager for details.",
+				Type:        schema.TypeString,
+				Required:    true,
+				Sensitive:   true,
+			},
+			"gcp_secret_prefix": {
+				Description: "The prefix added to any secret created by this integration in GCP. See https://docs.doppler.com/docs/gcp-secret-manager for details.",
+				Type:        schema.TypeString,
+				Required:    true,
+				Sensitive:   false,
+			},
+		},
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			return map[string]interface{}{
+				"gcp_key":           d.Get("gcp_key"),
+				"gcp_secret_prefix": d.Get("gcp_secret_prefix"),
+			}
+		},
+	}
+	return builder.Build()
+}
