@@ -1387,7 +1387,7 @@ func (client APIClient) GetWorkplaceRole(ctx context.Context, identifier string)
 	if err != nil {
 		return nil, err
 	}
-	var result UpdateWorkplaceRoleResponse
+	var result GetWorkplaceRoleResponse
 	if err = json.Unmarshal(response.Body, &result); err != nil {
 		return nil, &APIError{Err: err, Message: "Unable to parse workplace role"}
 	}

@@ -12,7 +12,7 @@ Manage a Doppler workplace_role.
 ## Example Usage
 
 ```terraform
-resource "doppler_workplace_role" "log_viewer" {
+resource "doppler_workplace_role" "team_manager" {
   name        = "Team Manager"
   permissions = ["team_manage"]
 }
@@ -31,7 +31,6 @@ resource "doppler_workplace_role" "log_viewer" {
 - `id` (String) The ID of this resource.
 - `identifier` (String) The role's unique identifier
 - `is_custom_role` (Boolean) Whether or not the role is custom (as opposed to Doppler built-in)
-- `is_inline_role` (Boolean) Whether or not the role is inline (as opposed to Doppler built-in)
 
 ## Import
 

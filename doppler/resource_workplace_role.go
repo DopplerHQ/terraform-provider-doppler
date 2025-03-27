@@ -40,11 +40,6 @@ func resourceWorkplaceRole() *schema.Resource {
 				Type:        schema.TypeBool,
 				Computed:    true,
 			},
-			"is_inline_role": {
-				Description: "Whether or not the role is inline (as opposed to Doppler built-in)",
-				Type:        schema.TypeBool,
-				Computed:    true,
-			},
 		},
 	}
 }
@@ -65,10 +60,6 @@ func updateWorkplaceRoleData(d *schema.ResourceData, role *WorkplaceRole) diag.D
 	}
 
 	if err := d.Set("is_custom_role", role.IsCustomRole); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := d.Set("is_inline_role", role.IsInlineRole); err != nil {
 		return diag.FromErr(err)
 	}
 
