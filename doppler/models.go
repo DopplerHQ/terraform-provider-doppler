@@ -380,3 +380,15 @@ type ChangeRequestPolicyResponse struct {
 }
 
 var NameTransformers = []string{"none", "camel", "upper-camel", "lower-snake", "tf-var", "dotnet", "dotnet-env", "lower-kebab"}
+
+type GetWorkplaceRoleResponse struct {
+	Role WorkplaceRole `json:"role"`
+}
+
+type CreateWorkplaceRoleResponse struct {
+	Role WorkplaceRole `json:"role"`
+}
+
+type UpdateWorkplaceRoleResponse struct {
+	Role WorkplaceRole `json:"role"`
+}
