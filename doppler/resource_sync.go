@@ -11,8 +11,9 @@ import (
 type SyncDataBuilderFunc = func(d *schema.ResourceData) SyncData
 
 type ResourceSyncBuilder struct {
-	DataSchema  map[string]*schema.Schema
-	DataBuilder IntegrationDataBuilderFunc
+	DataSchema    map[string]*schema.Schema
+	DataBuilder   IntegrationDataBuilderFunc
+	CustomizeDiff schema.CustomizeDiffFunc
 }
 
 // resourceSync returns a schema resource object for the Sync model.
@@ -56,6 +57,7 @@ func (builder ResourceSyncBuilder) Build() *schema.Resource {
 		UpdateContext: resourceSyncUpdate,
 		DeleteContext: builder.DeleteContextFunc(),
 		Schema:        resourceSchema,
+		CustomizeDiff: builder.CustomizeDiff,
 	}
 }
 

@@ -1,6 +1,7 @@
 package doppler
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -456,6 +457,73 @@ func resourceSyncAzureVault() *schema.Resource {
 				payload["single_secret_name"] = single_secret_name
 			}
 			return payload
+		},
+	}
+	return builder.Build()
+}
+
+func resourceSyncGCPSecretManager() *schema.Resource {
+	name_regex, _ := regexp.Compile("^[a-zA-Z0-9_-]*$")
+	builder := ResourceSyncBuilder{
+		DataSchema: map[string]*schema.Schema{
+			"sync_strategy": {
+				Description:  "Determines whether secrets are synced to a single secret (`single-secret`) as a JSON object or multiple discrete secrets (`multi-secret`).",
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice([]string{"single-secret", "multi-secret"}, false),
+			},
+			"name": {
+				Description:  "The name used to store the secret when sync_strategy is set to `single-secret` (note that the integration's `gcp_secret_prefix` will be prepended to this).",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringMatch(name_regex, ""),
+			},
+			"format": {
+				Description:  "Specifies the format secrets will be stored in. Either `env` or `json`. Defaults to `json`.",
+				Type:         schema.TypeString,
+				Default:      "json",
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice([]string{"env", "json"}, false),
+			},
+			"regions": {
+				Description: "The GCP regions used for replication. Can include any supported GCP region or `[\"automatic\"]`.",
+				Type:        schema.TypeList,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				MinItems:    1,
+				Required:    true,
+				ForceNew:    true,
+			},
+		},
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			regions := d.Get("regions")
+			syncStrategy := d.Get("sync_strategy")
+			payload := map[string]interface{}{
+				"regions":       regions,
+				"sync_strategy": syncStrategy,
+			}
+
+			if syncStrategy == "single-secret" {
+				payload["name"] = d.Get("name")
+				payload["format"] = d.Get("format")
+			}
+
+			return payload
+		},
+		CustomizeDiff: func(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+			name, nameExists := d.GetOk("name")
+			syncStrategy, _ := d.GetOk("sync_strategy")
+
+			if syncStrategy == "single-secret" && name == "" {
+				return fmt.Errorf("`name` must be provided if `sync_strategy` is `single-secret`")
+			}
+
+			if syncStrategy == "multi-secret" && nameExists {
+				return fmt.Errorf("`name` has no effect if `sync_strategy` is `multi-secret`")
+			}
+			return nil
 		},
 	}
 	return builder.Build()
