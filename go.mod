@@ -1,6 +1,7 @@
 module github.com/DopplerHQ/terraform-provider-doppler
 
-go 1.22
+// GO_VERSION_DEF
+go 1.24
 
 require (
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320

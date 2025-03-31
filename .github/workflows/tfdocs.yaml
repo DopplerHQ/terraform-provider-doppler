@@ -16,7 +16,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "^1.22"
+          go-version: "^1.24" # GO_VERSION_DEF
       - run: go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest
 
       - name: Compute initial hash of docs directory
