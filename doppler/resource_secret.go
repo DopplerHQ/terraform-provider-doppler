@@ -67,6 +67,7 @@ func resourceSecret() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{
 					"string", "json", "json5", "boolean", "integer", "decimal", "email",
 					"url", "uuidv4", "cuid2", "ulid", "datetime8601", "date8601", "yaml",
+					"directReference", "xml",
 				}, false),
 			},
 		},
