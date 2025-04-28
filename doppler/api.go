@@ -1158,6 +1158,28 @@ func (client APIClient) GetGroup(ctx context.Context, slug string) (*Group, erro
 	return &result.Group, nil
 }
 
+func (client APIClient) GetGroupByName(ctx context.Context, name string) (*Group, error) {
+	params := []QueryParam{
+		{Key: "name", Value: name},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", "/v3/workplace/groups", params, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result GroupsResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse group"}
+	}
+	if len(result.Groups) > 1 {
+		return nil, &APIError{Err: err, Message: "Multiple workplace groups returned"}
+	}
+	if len(result.Groups) > 0 {
+		return &result.Groups[0], nil
+	} else {
+		return nil, &CustomNotFoundError{Message: "Could not find requested workplace group"}
+	}
+}
+
 func (client APIClient) CreateGroup(ctx context.Context, name string, defaultProjectRole string) (*Group, error) {
 	payload := map[string]interface{}{
 		"name": name,

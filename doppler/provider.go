@@ -86,6 +86,7 @@ func Provider() *schema.Provider {
 		DataSourcesMap: map[string]*schema.Resource{
 			"doppler_secrets": dataSourceSecrets(),
 			"doppler_user":    dataSourceUser(),
+			"doppler_group":   dataSourceGroup(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}

@@ -312,6 +312,10 @@ type GroupResponse struct {
 	Group Group `json:"group"`
 }
 
+type GroupsResponse struct {
+	Groups []Group `json:"groups"`
+}
+
 type GroupIsMemberResponse struct {
 	IsMember bool `json:"isMember"`
 }
