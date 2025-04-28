@@ -68,9 +68,11 @@ func Provider() *schema.Provider {
 			"doppler_integration_terraform_cloud":  resourceIntegrationTerraformCloud(),
 			"doppler_secrets_sync_terraform_cloud": resourceSyncTerraformCloud(),
 
-			// creating integrations is not currently supported for GitHub Actions
-			// "doppler_integration_github_actions":  resourceIntegrationGitHubActions(),
-			"doppler_secrets_sync_github_actions": resourceSyncGitHubActions(),
+			// creating integrations is not currently supported for GitHub syncs
+			// "doppler_integration_github":  resourceIntegrationGitHub(),
+			"doppler_secrets_sync_github_actions":    resourceSyncGitHubActions(),
+			"doppler_secrets_sync_github_codespaces": resourceSyncGitHubCodespaces(),
+			"doppler_secrets_sync_github_dependabot": resourceSyncGitHubDependabot(),
 
 			"doppler_integration_flyio":  resourceIntegrationFlyio(),
 			"doppler_secrets_sync_flyio": resourceSyncFlyio(),
