@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_secrets_sync_github_actions Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Integrations"
 description: |-
 	Manage a GitHub Actions Doppler sync.
 ---

@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_secret Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Secrets"
 description: |-
 	Manage a single Doppler secret in a config.
 ---

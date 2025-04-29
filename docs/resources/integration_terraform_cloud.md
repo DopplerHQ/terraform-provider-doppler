@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_integration_terraform_cloud Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Integrations"
 description: |-
 	Manage a Terraform Cloud Doppler integration.
 ---

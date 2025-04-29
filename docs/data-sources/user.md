@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_user Data Source - terraform-provider-doppler"
-subcategory: "User"
+subcategory: "Users"
 description: |-
   Retrieve an existing Doppler user.
 ---

@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_integration_circleci Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Integrations"
 description: |-
 	Manage a CircleCI Doppler integration.
 ---

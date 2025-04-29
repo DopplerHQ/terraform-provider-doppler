@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_webhook Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Webhooks"
 description: |-
 	Manage a Doppler Webhook.
 ---

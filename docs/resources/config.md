@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_config Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Project Structure"
 description: |-
 	Manage a Doppler config.
 ---

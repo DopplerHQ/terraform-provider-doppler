@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_group_member Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Groups"
 description: |-
 	Manage a Doppler user/group membership.
 ---

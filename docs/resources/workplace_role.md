@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_workplace_role Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Roles"
 description: |-
 	Manage a Doppler workplace role.
 ---

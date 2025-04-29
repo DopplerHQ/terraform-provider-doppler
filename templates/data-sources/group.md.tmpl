@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_group Data Source - terraform-provider-doppler"
-subcategory: "Group"
+subcategory: "Groups"
 description: |-
   Retrieve an existing Doppler group.
 ---

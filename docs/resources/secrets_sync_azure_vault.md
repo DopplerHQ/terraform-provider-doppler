@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_secrets_sync_azure_vault Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Integrations"
 description: |-
 	Manage an Azure Vault Doppler sync.
 ---

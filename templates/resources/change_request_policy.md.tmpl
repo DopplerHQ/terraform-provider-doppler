@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_change_request_policy Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Change Requests"
 description: |-
 	Manage a Doppler change request policy.
 ---

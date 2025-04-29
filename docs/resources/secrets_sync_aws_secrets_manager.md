@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_secrets_sync_aws_secrets_manager Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Integrations"
 description: |-
 	Manage an AWS Secrets Manager Doppler sync.
 ---

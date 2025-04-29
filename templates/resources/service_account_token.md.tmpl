@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_service_account_token Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Service Accounts"
 description: |-
 	Manage a Doppler service_account_token.
 ---

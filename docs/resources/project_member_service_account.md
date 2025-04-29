@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_project_member_service_account Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Project Structure"
 description: |-
 	Manage a Doppler project service account member.
 ---

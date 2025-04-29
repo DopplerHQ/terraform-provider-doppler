@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_integration_aws_secrets_manager Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Integrations"
 description: |-
 	Manage an AWS Secrets Manager Doppler integration.
 ---
