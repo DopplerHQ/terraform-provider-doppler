@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_integration_aws_parameter_store Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Integrations"
 description: |-
 	Manage an AWS Parameter Store Doppler integration.
 ---

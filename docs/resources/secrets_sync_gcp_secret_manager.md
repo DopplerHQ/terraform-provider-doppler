@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_secrets_sync_gcp_secret_manager Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Integrations"
 description: |-
 	Manage a GCP Secret Manager Doppler sync.
 ---

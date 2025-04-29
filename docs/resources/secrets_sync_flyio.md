@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_secrets_sync_flyio Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Integrations"
 description: |-
 	Manage a Fly.io Doppler sync.
 ---

@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_integration_flyio Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Integrations"
 description: |-
 	Manage a Fly.io Doppler integration.
 ---

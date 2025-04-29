@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_integration_azure_vault_service_principal Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Integrations"
 description: |-
 	Manage an Azure Vault (Service Principal) Doppler integration.
 ---

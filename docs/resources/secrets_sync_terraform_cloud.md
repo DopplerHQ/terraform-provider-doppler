@@ -1,6 +1,6 @@
 ---
 page_title: "doppler_secrets_sync_terraform_cloud Resource - terraform-provider-doppler"
-subcategory: ""
+subcategory: "Integrations"
 description: |-
 	Manage a Terraform Cloud Doppler sync.
 ---
