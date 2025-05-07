@@ -237,6 +237,14 @@ func (client APIClient) GetSecret(ctx context.Context, project string, config st
 	if err := json.Unmarshal(response.Body, &result); err != nil {
 		return nil, &APIError{Err: err, Message: "Unable to parse secret"}
 	}
+	if result.Value.Raw == nil &&
+		result.Value.Computed == nil &&
+		result.Value.RawVisibility == nil &&
+		result.Value.ComputedVisibility == nil &&
+		result.Value.RawValueType == nil &&
+		result.Value.ComputedValueType == nil {
+		return nil, &CustomNotFoundError{Message: "Secret does not exist"}
+	}
 	return &result, nil
 }
 
