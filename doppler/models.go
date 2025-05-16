@@ -358,6 +358,7 @@ type ChangeRequestPolicyRule struct {
 	Type     string                       `json:"type"`
 	Count    int                          `json:"count,omitempty"`
 	Subjects []ChangeRequestPolicySubject `json:"subjects,omitempty"`
+	Strategy string                       `json:"strategy,omitempty"`
 }
 
 type ChangeRequestPolicyTargetProject struct {

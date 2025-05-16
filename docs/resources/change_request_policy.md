@@ -62,6 +62,7 @@ This policy is enforced in all configs of the prd environment of test_proj, as w
 EOT
   rules {
     disallow_self_review = true
+    auto_assign_reviewers = "matchCount"
 
     required_reviewers {
       count = 2
@@ -106,6 +107,7 @@ EOT
 
 Optional:
 
+- `auto_assign_reviewers` (String) If set, the strategy used to automatically assign reviewers to CRs targeted by this policy. Valid values: all, matchCount, never (default)
 - `disallow_self_review` (Boolean) If true, approvals from the author of a change request will be excluded when evaluating this policy
 - `required_reviewers` (Block Set) Enforces that a specific number of users approve a change request before it can be applied (see [below for nested schema](#nestedblock--rules--required_reviewers))
 

@@ -42,6 +42,12 @@ var resourceChangeRequestPolicyRules = schema.Resource{
 			Optional:    true,
 			Default:     false,
 		},
+		"auto_assign_reviewers": {
+			Description: "If set, the strategy used to automatically assign reviewers to CRs targeted by this policy. Valid values: all, matchCount, never (default)",
+			Type:        schema.TypeString,
+			Optional:    true,
+			Default:     "never",
+		},
 		"required_reviewers": {
 			Description: "Enforces that a specific number of users approve a change request before it can be applied",
 			Type:        schema.TypeSet,
@@ -229,6 +235,9 @@ func toChangeRequestPolicy(d *schema.ResourceData, diags diag.Diagnostics) (Chan
 
 	rulesList := d.Get("rules").([]interface{})
 	rules := rulesList[0].(map[string]interface{}) // This is required in the schema, panic if it doesn't exist
+	if rules["auto_assign_reviewers"] != "never" {
+		policy.Rules = append(policy.Rules, ChangeRequestPolicyRule{Type: "AutoAssignReviewers", Strategy: rules["auto_assign_reviewers"].(string)})
+	}
 	if rules["disallow_self_review"] == true {
 		policy.Rules = append(policy.Rules, ChangeRequestPolicyRule{Type: "DisallowSelfReview"})
 	}
@@ -362,11 +371,14 @@ func updateChangeRequestPolicyState(d *schema.ResourceData, policy *ChangeReques
 	if requiredReviewers.Len() > 0 {
 		rules["required_reviewers"] = requiredReviewers
 	}
+	rules["auto_assign_reviewers"] = "never"
 	rules["disallow_self_review"] = false
 	for _, rule := range policy.Rules {
 		if rule.Type == "DisallowSelfReview" {
 			rules["disallow_self_review"] = true
-			break
+		}
+		if rule.Type == "AutoAssignReviewers" {
+			rules["auto_assign_reviewers"] = rule.Strategy
 		}
 	}
 

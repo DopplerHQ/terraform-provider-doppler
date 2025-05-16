@@ -48,6 +48,7 @@ This policy is enforced in all configs of the prd environment of test_proj, as w
 EOT
   rules {
     disallow_self_review = true
+    auto_assign_reviewers = "matchCount"
 
     required_reviewers {
       count = 2
