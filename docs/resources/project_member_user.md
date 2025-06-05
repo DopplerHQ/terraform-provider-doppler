@@ -1,23 +1,26 @@
 ---
-page_title: "doppler_project_member_workplace_user Resource - terraform-provider-doppler"
+page_title: "doppler_project_member_user Resource - terraform-provider-doppler"
 subcategory: "Project Structure"
 description: |-
-	Manage a Doppler project workplace user member.
+	Manage a Doppler project user member.
 ---
 
-# doppler_project_member_workplace_user (Resource)
+# doppler_project_member_user (Resource)
 
-Manage a Doppler project workplace user member.
+Manage a Doppler project user member.
 
 ## Example Usage
 
 ```terraform
-resource "doppler_project_member_workplace_user" "backend_jane_doe" {
+data "doppler_user" "brian" {
+  email = "brian@doppler.com"
+}
+
+resource "doppler_project_member_user" "backend_brian" {
   project      = "backend"
-  workplace_user_slug   = doppler_workplace_user.jane_doe.slug
+  user_slug    = data.doppler_user.brian.slug
   role         = "collaborator"
   environments = ["dev", "stg"]
-
 }
 ```
 
@@ -28,7 +31,7 @@ resource "doppler_project_member_workplace_user" "backend_jane_doe" {
 
 - `project` (String) The name of the Doppler project where the access is applied
 - `role` (String) The project role identifier for the access
-- `workplace_user_slug` (String) The slug of the Doppler workplace user
+- `user_slug` (String) The slug of the Doppler workplace user
 
 ### Optional
 

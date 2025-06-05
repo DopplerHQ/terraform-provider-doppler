@@ -55,7 +55,7 @@ func Provider() *schema.Provider {
 
 			"doppler_project_member_group":           resourceProjectMemberGroup(),
 			"doppler_project_member_service_account": resourceProjectMemberServiceAccount(),
-			"doppler_project_member_workplace_user":  resourceProjectMemberWorkplaceUser(),
+			"doppler_project_member_user":            resourceProjectMemberUser(),
 
 			"doppler_integration_aws_secrets_manager":  resourceIntegrationAWSAssumeRoleIntegration("aws_secrets_manager"),
 			"doppler_secrets_sync_aws_secrets_manager": resourceSyncAWSSecretsManager(),
@@ -83,7 +83,7 @@ func Provider() *schema.Provider {
 			"doppler_integration_azure_vault_service_principal": resourceIntegrationAzureVaultServicePrincipal(),
 			"doppler_secrets_sync_azure_vault":                  resourceSyncAzureVault(),
 
-			"doppler_integration_gcp_secret_manager": resourceIntegrationGCPSecretManager(),
+			"doppler_integration_gcp_secret_manager":  resourceIntegrationGCPSecretManager(),
 			"doppler_secrets_sync_gcp_secret_manager": resourceSyncGCPSecretManager(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
