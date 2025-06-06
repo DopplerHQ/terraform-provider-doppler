@@ -45,3 +45,23 @@ func resourceProjectMemberServiceAccount() *schema.Resource {
 	}
 	return builder.Build()
 }
+
+func resourceProjectMemberUser() *schema.Resource {
+	builder := ResourceProjectMemberBuilder{
+		MemberType: "workplace_user",
+		DataSchema: map[string]*schema.Schema{
+			"user_slug": {
+				Description: "The slug of the Doppler workplace user",
+				Type:        schema.TypeString,
+				Required:    true,
+				// Access cannot be moved directly from one user to another, it must be re-created
+				ForceNew: true,
+			},
+		},
+		GetMemberSlugFunc: func(ctx context.Context, d *schema.ResourceData, m interface{}) (*string, error) {
+			userSlug := d.Get("user_slug").(string)
+			return &userSlug, nil
+		},
+	}
+	return builder.Build()
+}
