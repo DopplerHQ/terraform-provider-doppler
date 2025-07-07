@@ -622,6 +622,24 @@ func (client APIClient) DeleteSync(ctx context.Context, slug string, deleteTarge
 	return nil
 }
 
+// Rotated Secrets
+
+func (client APIClient) GetRotatedSecret(ctx context.Context, config, project, slug string) (*RotatedSecret, error) {
+	params := []QueryParam{
+		{Key: "config", Value: config},
+		{Key: "project", Value: project},
+		{Key: "slug", Value: slug},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", "/v3/configs/config/rotated_secrets/rotated_secret", params, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result RotatedSecretResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse rotated secret"}
+	}
+	return &result.RotatedSecret, nil
+}
 
 func (client APIClient) CreateExternalId(ctx context.Context, integrationType string) (string, error) {
 	payload := map[string]interface{}{
@@ -641,6 +659,72 @@ func (client APIClient) CreateExternalId(ctx context.Context, integrationType st
 	}
 	return result.ExternalId, nil
 }
+
+func (client APIClient) CreateRotatedSecret(ctx context.Context, name string, rotationPeriodSec int, parameters RotatedSecretParameters, credentials RotatedSecretCredentials, config, project, integration string) (*RotatedSecret, error) {
+	params := []QueryParam{
+		{Key: "config", Value: config},
+		{Key: "project", Value: project},
+	}
+	payload := map[string]interface{}{
+		"integration":         integration,
+		"name":                name,
+		"rotation_period_sec": rotationPeriodSec,
+		"parameters":          parameters,
+		"credentials":         credentials,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize rotated secret"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/configs/config/rotated_secrets", params, body)
+	if err != nil {
+		return nil, err
+	}
+	var result RotatedSecretResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse rotated secret"}
+	}
+	return &result.RotatedSecret, nil
+}
+
+func (client APIClient) UpdateRotatedSecret(ctx context.Context, name string, rotationPeriodSec int, config, project, slug string) (*RotatedSecret, error) {
+	params := []QueryParam{
+		{Key: "config", Value: config},
+		{Key: "project", Value: project},
+		{Key: "slug", Value: slug},
+	}
+	payload := map[string]interface{}{
+		"name":                name,
+		"rotation_period_sec": rotationPeriodSec,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize rotated secret"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "PUT", "/v3/configs/config/rotated_secrets/rotated_secret", params, body)
+	if err != nil {
+		return nil, err
+	}
+	var result RotatedSecretResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse rotated secret"}
+	}
+	return &result.RotatedSecret, nil
+}
+
+func (client APIClient) DeleteRotatedSecret(ctx context.Context, slug string, config, project string) error {
+	params := []QueryParam{
+		{Key: "config", Value: config},
+		{Key: "project", Value: project},
+		{Key: "slug", Value: slug},
+	}
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", "/v3/configs/config/rotated_secrets/rotated_secret", params, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Environments
 
 func (client APIClient) GetEnvironment(ctx context.Context, project string, name string) (*Environment, error) {
