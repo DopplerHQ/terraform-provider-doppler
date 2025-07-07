@@ -622,6 +622,25 @@ func (client APIClient) DeleteSync(ctx context.Context, slug string, deleteTarge
 	return nil
 }
 
+
+func (client APIClient) CreateExternalId(ctx context.Context, integrationType string) (string, error) {
+	payload := map[string]interface{}{
+		"type": integrationType,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return "", &APIError{Err: err, Message: "Unable to serialize external id request"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/integrations/generate_external_id", nil, body)
+	if err != nil {
+		return "", err
+	}
+	var result ExternalIdResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return "", &APIError{Err: err, Message: "Unable to parse external ID"}
+	}
+	return result.ExternalId, nil
+}
 // Environments
 
 func (client APIClient) GetEnvironment(ctx context.Context, project string, name string) (*Environment, error) {

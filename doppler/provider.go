@@ -91,6 +91,8 @@ func Provider() *schema.Provider {
 			"doppler_integration_aws_mssql":                resourceIntegrationAWSMSSQLServer(),
 			"doppler_integration_aws_postgres":             resourceIntegrationAWSPostgres(),
 
+			"doppler_integration_external_id": resourceExternalId(),
+
 			// creating Azure Vault oauth integrations is not currently supported
 			// "doppler_integration_azure_vault":  resourceIntegrationAzureVault(),
 			"doppler_integration_azure_vault_service_principal": resourceIntegrationAzureVaultServicePrincipal(),

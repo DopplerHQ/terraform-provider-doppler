@@ -135,6 +135,10 @@ type SyncResponse struct {
 	Sync Sync `json:"sync"`
 }
 
+type ExternalIdResponse struct {
+	ExternalId string `json:"pendingExternalId"`
+}
+
 type Environment struct {
 	Slug      string `json:"slug"`
 	Name      string `json:"name"`
