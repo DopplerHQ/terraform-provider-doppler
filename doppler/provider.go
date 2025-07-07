@@ -93,6 +93,17 @@ func Provider() *schema.Provider {
 
 			"doppler_integration_external_id": resourceExternalId(),
 
+			"doppler_rotated_secret_twilio":                   resourceRotatedSecretTwilio(),
+			"doppler_rotated_secret_cloudflare_tokens":        resourceRotatedSecretCloudflareTokens(),
+			"doppler_rotated_secret_mongodb_atlas":            resourceRotatedSecretMongoDBAtlas(),
+			"doppler_rotated_secret_sendgrid":                 resourceRotatedSecretSendGrid(),
+			"doppler_rotated_secret_gcp_cloudsql":             resourceRotatedSecretGCPCloudSQL(),
+			"doppler_rotated_secret_aws_iam_user_keys":        resourceRotatedSecretAWSIAMUserKeys(),
+			"doppler_rotated_secret_aws_mysql":                resourceRotatedSecretAWSMySQL(),
+			"doppler_rotated_secret_aws_mssql":                resourceRotatedSecretAWSMSSQLServer(),
+			"doppler_rotated_secret_aws_postgres":             resourceRotatedSecretAWSPostgres(),
+			"doppler_rotated_secret_gcp_service_account_keys": resourceRotatedSecretGCPServiceAccountKeys(),
+
 			// creating Azure Vault oauth integrations is not currently supported
 			// "doppler_integration_azure_vault":  resourceIntegrationAzureVault(),
 			"doppler_integration_azure_vault_service_principal": resourceIntegrationAzureVaultServicePrincipal(),
