@@ -95,6 +95,7 @@ resource "doppler_secrets_sync_aws_parameter_store" "backend_prod" {
 
 ### Optional
 
+- `advanced_parameter` (Boolean) Whether or not the parameters are explicitly stored as an advanced parameter
 - `delete_behavior` (String) The behavior to be performed on the secrets in the sync target when this resource is deleted or recreated. Either `leave_in_target` (default) or `delete_from_target`.
 - `kms_key_id` (String) The AWS KMS key used to encrypt the parameter (ID, Alias, or ARN)
 - `name_transform` (String) An optional secret name transformer (e.g. DOPPLER_CONFIG in lower-kebab would be doppler-config). Valid transformers: none, camel, upper-camel, lower-snake, tf-var, dotnet, dotnet-env, lower-kebab
