@@ -281,6 +281,10 @@ type SimpleProjectRole struct {
 	Identifier string `json:"identifier"`
 }
 
+type SimpleWorkplaceRole struct {
+	Identifier string `json:"identifier"`
+}
+
 type ProjectRole struct {
 	Identifier   string   `json:"identifier"`
 	Name         string   `json:"name"`
@@ -302,10 +306,11 @@ type UpdateProjectRoleResponse struct {
 }
 
 type Group struct {
-	Slug               string            `json:"slug"`
-	Name               string            `json:"name"`
-	CreatedAt          string            `json:"created_at"`
-	DefaultProjectRole SimpleProjectRole `json:"default_project_role"`
+	Slug               string              `json:"slug"`
+	Name               string              `json:"name"`
+	CreatedAt          string              `json:"created_at"`
+	DefaultProjectRole SimpleProjectRole   `json:"default_project_role"`
+	WorkplaceRole      SimpleWorkplaceRole `json:"workplace_role"`
 }
 
 type GroupResponse struct {
