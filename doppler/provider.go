@@ -87,9 +87,10 @@ func Provider() *schema.Provider {
 			"doppler_secrets_sync_gcp_secret_manager": resourceSyncGCPSecretManager(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"doppler_secrets": dataSourceSecrets(),
-			"doppler_user":    dataSourceUser(),
-			"doppler_group":   dataSourceGroup(),
+			"doppler_secrets":    dataSourceSecrets(),
+			"doppler_user":       dataSourceUser(),
+			"doppler_group":      dataSourceGroup(),
+			"doppler_environments": dataSourceEnvironments(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}

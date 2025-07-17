@@ -702,6 +702,21 @@ func (client APIClient) DeleteEnvironment(ctx context.Context, project string, s
 	return nil
 }
 
+func (client APIClient) ListEnvironments(ctx context.Context, project string) ([]Environment, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", "/v3/environments", params, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result EnvironmentsResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse environments"}
+	}
+	return result.Environments, nil
+}
+
 // Webhooks
 
 func (client APIClient) GetWebhook(ctx context.Context, project string, slug string) (*Webhook, error) {
