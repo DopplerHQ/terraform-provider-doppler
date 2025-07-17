@@ -98,7 +98,7 @@ func resourceEnvironmentRead(ctx context.Context, d *schema.ResourceData, m inte
 		return handleNotFoundError(err, d)
 	}
 
-	if err = d.Set("slug", environment.Id); err != nil {
+	if err = d.Set("slug", environment.Slug); err != nil {
 		return diag.FromErr(err)
 	}
 

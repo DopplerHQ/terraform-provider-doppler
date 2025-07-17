@@ -23,7 +23,7 @@ func dataSourceEnvironmentsRead(ctx context.Context, d *schema.ResourceData, m i
 	var environmentsList []map[string]interface{}
 	for _, env := range environments {
 		environmentMap := map[string]interface{}{
-			"slug":       env.Id,
+			"slug":       env.Slug,
 			"name":       env.Name,
 			"project":    env.Project,
 			"created_at": env.CreatedAt,

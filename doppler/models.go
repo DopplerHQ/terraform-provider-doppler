@@ -136,7 +136,7 @@ type SyncResponse struct {
 }
 
 type Environment struct {
-	Id        string `json:"id"`
+	Slug        string `json:"slug"`
 	Name      string `json:"name"`
 	Project   string `json:"project"`
 	CreatedAt string `json:"created_at"`
@@ -151,7 +151,7 @@ type EnvironmentsResponse struct {
 }
 
 func (e Environment) getResourceId() string {
-	return strings.Join([]string{e.Project, e.Id}, ".")
+	return strings.Join([]string{e.Project, e.Slug}, ".")
 }
 
 func parseEnvironmentResourceId(id string) (project string, name string, err error) {
