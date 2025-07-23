@@ -11,8 +11,8 @@ func dataSourceEnvironmentsRead(ctx context.Context, d *schema.ResourceData, m i
 	var diags diag.Diagnostics
 	client := m.(APIClient)
 
-	d.SetId(client.GetId())
 	project := d.Get("project").(string)
+	d.SetId(project)
 
 	environments, err := client.ListEnvironments(ctx, project)
 	if err != nil {
