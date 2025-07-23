@@ -3,7 +3,6 @@ package doppler
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -21,14 +20,6 @@ type APIClient struct {
 	Host      string
 	APIKey    string
 	VerifyTLS bool
-}
-
-func (client APIClient) GetId() string {
-	digester := sha256.New()
-	fmt.Fprint(digester, client.Host)
-	fmt.Fprint(digester, client.APIKey)
-	fmt.Fprint(digester, client.VerifyTLS)
-	return fmt.Sprintf("%x", digester.Sum(nil))
 }
 
 type APIResponse struct {
