@@ -44,6 +44,10 @@ type SecretValue struct {
 	ComputedValueType  *ValueType `json:"computedValueType,omitempty"`
 }
 
+func getSecretsId(project string, config string) string {
+	return strings.Join([]string{project, config}, ".")
+}
+
 func getSecretId(project string, config string, name string) string {
 	return strings.Join([]string{project, config, name}, ".")
 }
