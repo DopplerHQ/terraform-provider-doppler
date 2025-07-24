@@ -1,3 +1,4 @@
 resource "doppler_group" "engineering" {
-  name = "engineering"
+  name           = "engineering"
+  workplace_role = "viewer"
 }

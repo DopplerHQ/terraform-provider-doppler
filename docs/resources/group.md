@@ -13,7 +13,8 @@ Manage a Doppler group.
 
 ```terraform
 resource "doppler_group" "engineering" {
-  name = "engineering"
+  name           = "engineering"
+  workplace_role = "viewer"
 }
 ```
 
@@ -26,7 +27,8 @@ resource "doppler_group" "engineering" {
 
 ### Optional
 
-- `default_project_role` (String) The default project role assigned to the group when added to a Doppler project
+- `default_project_role` (String) The default project role assigned to the group when added to a Doppler project. If set to null, the default project role is inherited from the workplace setting.
+- `workplace_role` (String) The workplace role assigned to members of the group. If omitted, state will be tracked in Terraform but not updated in Doppler. Use "no_access" to ensure the group has no workplace permissions
 
 ### Read-Only
 
