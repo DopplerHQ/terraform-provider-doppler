@@ -22,7 +22,6 @@ func (builder ResourceIntegrationBuilder) Build() *schema.Resource {
 			Description: "The name of the integration",
 			Type:        schema.TypeString,
 			Required:    true,
-			ForceNew:    true,
 		},
 	}
 
