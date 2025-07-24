@@ -3,7 +3,6 @@ package doppler
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -21,14 +20,6 @@ type APIClient struct {
 	Host      string
 	APIKey    string
 	VerifyTLS bool
-}
-
-func (client APIClient) GetId() string {
-	digester := sha256.New()
-	fmt.Fprint(digester, client.Host)
-	fmt.Fprint(digester, client.APIKey)
-	fmt.Fprint(digester, client.VerifyTLS)
-	return fmt.Sprintf("%x", digester.Sum(nil))
 }
 
 type APIResponse struct {
@@ -700,6 +691,21 @@ func (client APIClient) DeleteEnvironment(ctx context.Context, project string, s
 		return err
 	}
 	return nil
+}
+
+func (client APIClient) ListEnvironments(ctx context.Context, project string) ([]Environment, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", "/v3/environments", params, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result EnvironmentsResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse environments"}
+	}
+	return result.Environments, nil
 }
 
 // Webhooks

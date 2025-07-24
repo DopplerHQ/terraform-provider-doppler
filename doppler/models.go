@@ -44,6 +44,10 @@ type SecretValue struct {
 	ComputedValueType  *ValueType `json:"computedValueType,omitempty"`
 }
 
+func getSecretsId(project string, config string) string {
+	return strings.Join([]string{project, config}, ".")
+}
+
 func getSecretId(project string, config string, name string) string {
 	return strings.Join([]string{project, config, name}, ".")
 }
@@ -144,6 +148,10 @@ type Environment struct {
 
 type EnvironmentResponse struct {
 	Environment Environment `json:"environment"`
+}
+
+type EnvironmentsResponse struct {
+	Environments []Environment `json:"environments"`
 }
 
 func (e Environment) getResourceId() string {

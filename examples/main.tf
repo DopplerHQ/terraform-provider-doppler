@@ -94,6 +94,10 @@ resource "doppler_environment" "ci" {
   slug = "ci"
   name = "CI-CD"
 }
+data "doppler_environments" "test_proj" {
+  project = doppler_project.test_proj.name
+}
+
 
 resource "doppler_config" "ci_github" {
   project = doppler_project.test_proj.name
@@ -106,6 +110,10 @@ resource "doppler_service_token" "ci_github_token" {
   config = doppler_config.ci_github.name
   name = "test token"
   access = "read"
+}
+
+output "environments" {
+  value = data.doppler_environments.test_proj.list
 }
 
 output "token_key" {

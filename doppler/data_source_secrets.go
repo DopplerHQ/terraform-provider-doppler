@@ -11,9 +11,10 @@ func dataSourceSecretsRead(ctx context.Context, d *schema.ResourceData, m interf
 	var diags diag.Diagnostics
 	client := m.(APIClient)
 
-	d.SetId(client.GetId())
 	project := d.Get("project").(string)
 	config := d.Get("config").(string)
+
+	d.SetId(getSecretsId(project, config))
 
 	result, err := client.GetComputedSecrets(ctx, project, config)
 	if err != nil {
