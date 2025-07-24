@@ -168,6 +168,13 @@ func resourceSyncAWSParameterStore() *schema.Resource {
 				ForceNew:    true,
 				Default:     true,
 			},
+			"advanced_parameter": {
+				Description: "Whether or not the parameters are explicitly stored as an advanced parameter",
+				Type:        schema.TypeBool,
+				Optional:    true,
+				ForceNew:    true,
+				Default:     false,
+			},
 			"kms_key_id": {
 				Description: "The AWS KMS key used to encrypt the parameter (ID, Alias, or ARN) ",
 				Type:        schema.TypeString,
@@ -234,10 +241,11 @@ func resourceSyncAWSParameterStore() *schema.Resource {
 		},
 		DataBuilder: func(d *schema.ResourceData) IntegrationData {
 			payload := map[string]interface{}{
-				"region":        d.Get("region"),
-				"path":          d.Get("path"),
-				"secure_string": d.Get("secure_string"),
-				"tags":          d.Get("tags"),
+				"region":             d.Get("region"),
+				"path":               d.Get("path"),
+				"secure_string":      d.Get("secure_string"),
+				"advanced_parameter": d.Get("advanced_parameter"),
+				"tags":               d.Get("tags"),
 			}
 			if kmsKeyId, ok := d.GetOk("kms_key_id"); ok {
 				payload["kms_key_id"] = kmsKeyId
