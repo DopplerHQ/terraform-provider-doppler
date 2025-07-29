@@ -139,6 +139,26 @@ type SyncResponse struct {
 	Sync Sync `json:"sync"`
 }
 
+type RotatedSecretParameters = map[string]interface{}
+type RotatedSecretCredentials = []map[string]interface{}
+
+type RotatedSecret struct {
+	Slug              string      `json:"slug"`
+	Project           string      `json:"project"`
+	Config            string      `json:"config"`
+	Integration       Integration `json:"integration"`
+	RotationPeriodSec int         `json:"rotation_period_sec"`
+	Name              string      `json:"name"`
+}
+
+type RotatedSecretResponse struct {
+	RotatedSecret RotatedSecret `json:"rotatedSecret"`
+}
+
+type ExternalIdResponse struct {
+	ExternalId string `json:"pendingExternalId"`
+}
+
 type Environment struct {
 	Slug      string `json:"slug"`
 	Name      string `json:"name"`

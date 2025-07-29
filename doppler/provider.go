@@ -78,6 +78,32 @@ func Provider() *schema.Provider {
 			"doppler_integration_flyio":  resourceIntegrationFlyio(),
 			"doppler_secrets_sync_flyio": resourceSyncFlyio(),
 
+			"doppler_integration_twilio":                   resourceIntegrationTwilio(),
+			"doppler_integration_cloudflare_tokens":        resourceIntegrationCloudflareTokens(),
+			"doppler_integration_mongodb_atlas":            resourceIntegrationMongoDBAtlas(),
+			"doppler_integration_sendgrid":                 resourceIntegrationSendGrid(),
+			"doppler_integration_gcp_service_account_keys": resourceIntegrationGCPServiceAccountKeys(),
+			"doppler_integration_gcp_cloudsql_mysql":       resourceIntegrationGCPCloudSQLMySQL(),
+			"doppler_integration_gcp_cloudsql_postgres":    resourceIntegrationGCPCloudSQLPostgres(),
+			"doppler_integration_gcp_cloudsql_sqlserver":   resourceIntegrationGCPCloudSQLSQLServer(),
+			"doppler_integration_aws_iam_user_keys":        resourceIntegrationAWSIAMUserKeys(),
+			"doppler_integration_aws_mysql":                resourceIntegrationAWSMySQL(),
+			"doppler_integration_aws_mssql":                resourceIntegrationAWSMSSQLServer(),
+			"doppler_integration_aws_postgres":             resourceIntegrationAWSPostgres(),
+
+			"doppler_integration_external_id": resourceExternalId(),
+
+			"doppler_rotated_secret_twilio":                   resourceRotatedSecretTwilio(),
+			"doppler_rotated_secret_cloudflare_tokens":        resourceRotatedSecretCloudflareTokens(),
+			"doppler_rotated_secret_mongodb_atlas":            resourceRotatedSecretMongoDBAtlas(),
+			"doppler_rotated_secret_sendgrid":                 resourceRotatedSecretSendGrid(),
+			"doppler_rotated_secret_gcp_cloudsql":             resourceRotatedSecretGCPCloudSQL(),
+			"doppler_rotated_secret_aws_iam_user_keys":        resourceRotatedSecretAWSIAMUserKeys(),
+			"doppler_rotated_secret_aws_mysql":                resourceRotatedSecretAWSMySQL(),
+			"doppler_rotated_secret_aws_mssql":                resourceRotatedSecretAWSMSSQLServer(),
+			"doppler_rotated_secret_aws_postgres":             resourceRotatedSecretAWSPostgres(),
+			"doppler_rotated_secret_gcp_service_account_keys": resourceRotatedSecretGCPServiceAccountKeys(),
+
 			// creating Azure Vault oauth integrations is not currently supported
 			// "doppler_integration_azure_vault":  resourceIntegrationAzureVault(),
 			"doppler_integration_azure_vault_service_principal": resourceIntegrationAzureVaultServicePrincipal(),
