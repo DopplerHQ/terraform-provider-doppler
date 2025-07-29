@@ -1297,12 +1297,15 @@ func (client APIClient) GetGroupByName(ctx context.Context, name string) (*Group
 	}
 }
 
-func (client APIClient) CreateGroup(ctx context.Context, name string, defaultProjectRole string) (*Group, error) {
+func (client APIClient) CreateGroup(ctx context.Context, name string, defaultProjectRole, workplaceRole string) (*Group, error) {
 	payload := map[string]interface{}{
 		"name": name,
 	}
 	if defaultProjectRole != "" {
 		payload["default_project_role"] = defaultProjectRole
+	}
+	if workplaceRole != "" {
+		payload["workplace_role"] = workplaceRole
 	}
 
 	body, err := json.Marshal(payload)
@@ -1320,7 +1323,7 @@ func (client APIClient) CreateGroup(ctx context.Context, name string, defaultPro
 	return &result.Group, nil
 }
 
-func (client APIClient) UpdateGroup(ctx context.Context, slug string, name string, defaultProjectRole *string) (*Group, error) {
+func (client APIClient) UpdateGroup(ctx context.Context, slug string, name string, defaultProjectRole, workplaceRole *string) (*Group, error) {
 	payload := map[string]interface{}{}
 	if name != "" {
 		payload["name"] = name
@@ -1331,6 +1334,9 @@ func (client APIClient) UpdateGroup(ctx context.Context, slug string, name strin
 		} else {
 			payload["default_project_role"] = defaultProjectRole
 		}
+	}
+	if workplaceRole != nil && *workplaceRole != "" {
+		payload["workplace_role"] = workplaceRole
 	}
 
 	body, err := json.Marshal(payload)
