@@ -2,6 +2,9 @@ package doppler
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -25,10 +28,29 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_VERIFY_TLS", true),
 			},
 			"doppler_token": {
-				Description: "A Doppler token, either a personal or service token. This can also be set via the DOPPLER_TOKEN environment variable.",
+				Description: "A Doppler token, either a personal or service token. This can also be set via the DOPPLER_TOKEN environment variable. Only one of `doppler_token` or OIDC authentication (`oidc_identity` + `oidc_token`/`oidc_token_file`) may be specified.",
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_TOKEN", nil),
+			},
+			"oidc_identity": {
+				Description: "The identity ID or slug of the Doppler service account identity for OIDC authentication. This can also be set via the DOPPLER_OIDC_IDENTITY environment variable.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_OIDC_IDENTITY", nil),
+			},
+			"oidc_token": {
+				Description: "A JWT token to use for OIDC authentication. Only one of `oidc_token` or `oidc_token_file` may be set. This can also be set via the DOPPLER_OIDC_TOKEN environment variable.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Sensitive:   true,
+				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_OIDC_TOKEN", nil),
+			},
+			"oidc_token_file": {
+				Description: "A path to a file containing a JWT token for OIDC authentication (e.g. a Kubernetes projected service account token). Only one of `oidc_token` or `oidc_token_file` may be set. This can also be set via the DOPPLER_OIDC_TOKEN_FILE environment variable.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_OIDC_TOKEN_FILE", nil),
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
@@ -128,7 +150,102 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 	verifyTLS := d.Get("verify_tls").(bool)
 	token := d.Get("doppler_token").(string)
 
+	oidcIdentity := d.Get("oidc_identity").(string)
+	oidcToken := d.Get("oidc_token").(string)
+	oidcTokenFile := d.Get("oidc_token_file").(string)
+
 	var diags diag.Diagnostics
+
+	hasToken := token != ""
+	hasOIDC := oidcIdentity != "" || oidcToken != "" || oidcTokenFile != ""
+
+	if hasToken && hasOIDC {
+		return nil, diag.Diagnostics{
+			diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Conflicting authentication configuration",
+				Detail:   "Only one of `doppler_token` or OIDC authentication (`oidc_identity` + `oidc_token`/`oidc_token_file`) may be specified.",
+			},
+		}
+	}
+
+	if !hasToken && !hasOIDC {
+		return nil, diag.Diagnostics{
+			diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Missing authentication configuration",
+				Detail:   "Either `doppler_token` or OIDC authentication (`oidc_identity` + `oidc_token`/`oidc_token_file`) must be specified.",
+			},
+		}
+	}
+
+	if hasOIDC {
+		if oidcIdentity == "" {
+			return nil, diag.Diagnostics{
+				diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Missing OIDC identity",
+					Detail:   "`oidc_identity` must be specified when using OIDC authentication.",
+				},
+			}
+		}
+
+		if oidcToken != "" && oidcTokenFile != "" {
+			return nil, diag.Diagnostics{
+				diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Conflicting OIDC token configuration",
+					Detail:   "Only one of `oidc_token` or `oidc_token_file` may be specified, not both.",
+				},
+			}
+		}
+
+		if oidcToken == "" && oidcTokenFile == "" {
+			return nil, diag.Diagnostics{
+				diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Missing OIDC token",
+					Detail:   "One of `oidc_token` or `oidc_token_file` must be specified when using OIDC authentication.",
+				},
+			}
+		}
+
+		jwt := oidcToken
+		if oidcTokenFile != "" {
+			contents, err := os.ReadFile(oidcTokenFile)
+			if err != nil {
+				return nil, diag.Diagnostics{
+					diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Unable to read OIDC token file",
+						Detail:   fmt.Sprintf("Failed to read OIDC token from file %q: %s", oidcTokenFile, err),
+					},
+				}
+			}
+			jwt = strings.TrimSpace(string(contents))
+			if jwt == "" {
+				return nil, diag.Diagnostics{
+					diag.Diagnostic{
+						Severity: diag.Error,
+						Summary:  "Empty OIDC token file",
+						Detail:   fmt.Sprintf("OIDC token file %q exists but is empty.", oidcTokenFile),
+					},
+				}
+			}
+		}
+
+		apiToken, err := exchangeOIDCToken(host, oidcIdentity, jwt, verifyTLS)
+		if err != nil {
+			return nil, diag.Diagnostics{
+				diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "OIDC token exchange failed",
+					Detail:   fmt.Sprintf("Failed to exchange OIDC token with Doppler: %s", err),
+				},
+			}
+		}
+		token = apiToken
+	}
 
 	return APIClient{Host: host, APIKey: token, VerifyTLS: verifyTLS}, diags
 }
