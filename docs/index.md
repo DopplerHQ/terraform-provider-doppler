@@ -22,7 +22,7 @@ provider "doppler" {
 
 ```hcl
 provider "doppler" {
-  oidc_identity   = "<YOUR SERVICE ACCOUNT IDENTITY>"
+  oidc_identity   = "<YOUR SERVICE ACCOUNT IDENTITY UUID>"
   oidc_token_file = "/var/run/secrets/tokens/doppler"
 }
 ```
@@ -34,7 +34,7 @@ provider "doppler" {
 
 - `doppler_token` (String) A Doppler token, either a personal or service token. This can also be set via the DOPPLER_TOKEN environment variable. Only one of `doppler_token` or OIDC authentication (`oidc_identity` + `oidc_token`/`oidc_token_file`) may be specified.
 - `host` (String) The Doppler API host (i.e. https://api.doppler.com). This can also be set via the DOPPLER_API_HOST environment variable.
-- `oidc_identity` (String) The identity ID or slug of the Doppler service account identity for OIDC authentication. This can also be set via the DOPPLER_OIDC_IDENTITY environment variable.
+- `oidc_identity` (String) The identity ID (UUID) of the Doppler service account identity for OIDC authentication. This can also be set via the DOPPLER_OIDC_IDENTITY environment variable.
 - `oidc_token` (String, Sensitive) A JWT token to use for OIDC authentication. Only one of `oidc_token` or `oidc_token_file` may be set. This can also be set via the DOPPLER_OIDC_TOKEN environment variable.
 - `oidc_token_file` (String) A path to a file containing a JWT token for OIDC authentication (e.g. a Kubernetes projected service account token). Only one of `oidc_token` or `oidc_token_file` may be set. This can also be set via the DOPPLER_OIDC_TOKEN_FILE environment variable.
 - `verify_tls` (Boolean) Whether or not to verify TLS. This can also be set via the DOPPLER_VERIFY_TLS environment variable.

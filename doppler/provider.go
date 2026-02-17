@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+var uuidRegex = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
 const defaultAPIHost = "https://api.doppler.com"
 
@@ -34,7 +37,7 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_TOKEN", nil),
 			},
 			"oidc_identity": {
-				Description: "The identity ID or slug of the Doppler service account identity for OIDC authentication. This can also be set via the DOPPLER_OIDC_IDENTITY environment variable.",
+				Description: "The identity ID (UUID) of the Doppler service account identity for OIDC authentication. This can also be set via the DOPPLER_OIDC_IDENTITY environment variable.",
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_OIDC_IDENTITY", nil),
@@ -186,6 +189,16 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 					Severity: diag.Error,
 					Summary:  "Missing OIDC identity",
 					Detail:   "`oidc_identity` must be specified when using OIDC authentication.",
+				},
+			}
+		}
+
+		if !uuidRegex.MatchString(oidcIdentity) {
+			return nil, diag.Diagnostics{
+				diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Invalid OIDC identity format",
+					Detail:   fmt.Sprintf("`oidc_identity` must be a valid UUID (e.g. \"00000000-0000-0000-0000-000000000000\"), got: %q", oidcIdentity),
 				},
 			}
 		}
