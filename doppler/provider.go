@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -223,39 +224,70 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 			}
 		}
 
+		if !verifyTLS {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "TLS verification disabled for OIDC authentication",
+				Detail:   "verify_tls is false. TLS certificate validation is disabled for the OIDC token exchange. This should never be used in production.",
+			})
+		}
+
+		if !strings.HasPrefix(strings.ToLower(host), "https://") {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Non-HTTPS host configured with OIDC authentication",
+				Detail:   "The configured host does not use HTTPS. OIDC JWTs will be transmitted without transport encryption.",
+			})
+		}
+
 		jwt := oidcToken
 		if oidcTokenFile != "" {
+			if !filepath.IsAbs(oidcTokenFile) {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Invalid OIDC token file path",
+					Detail:   "`oidc_token_file` must be an absolute path.",
+				})
+				return nil, diags
+			}
 			contents, err := os.ReadFile(oidcTokenFile)
 			if err != nil {
-				return nil, diag.Diagnostics{
-					diag.Diagnostic{
-						Severity: diag.Error,
-						Summary:  "Unable to read OIDC token file",
-						Detail:   fmt.Sprintf("Failed to read OIDC token from file %q: %s", oidcTokenFile, err),
-					},
-				}
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Unable to read OIDC token file",
+					Detail:   fmt.Sprintf("Failed to read OIDC token from file %q. Verify the file exists and is readable by the Terraform process.", oidcTokenFile),
+				})
+				return nil, diags
 			}
 			jwt = strings.TrimSpace(string(contents))
 			if jwt == "" {
-				return nil, diag.Diagnostics{
-					diag.Diagnostic{
-						Severity: diag.Error,
-						Summary:  "Empty OIDC token file",
-						Detail:   fmt.Sprintf("OIDC token file %q exists but is empty.", oidcTokenFile),
-					},
-				}
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Empty OIDC token file",
+					Detail:   fmt.Sprintf("OIDC token file %q exists but is empty.", oidcTokenFile),
+				})
+				return nil, diags
 			}
 		}
 
-		apiToken, err := exchangeOIDCToken(host, oidcIdentity, jwt, verifyTLS)
+		parts := strings.Split(jwt, ".")
+		if len(parts) != 3 {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Invalid OIDC token format",
+				Detail:   "The OIDC token does not appear to be a valid JWT (expected 3 dot-separated parts).",
+			})
+			return nil, diags
+		}
+
+		apiToken, err := exchangeOIDCToken(ctx, host, oidcIdentity, jwt, verifyTLS)
 		if err != nil {
-			return nil, diag.Diagnostics{
-				diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "OIDC token exchange failed",
-					Detail:   fmt.Sprintf("Failed to exchange OIDC token with Doppler: %s", err),
-				},
-			}
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "OIDC token exchange failed",
+				Detail:   fmt.Sprintf("Failed to exchange OIDC token with Doppler: %s", err),
+			})
+			return nil, diags
 		}
 		token = apiToken
 	}

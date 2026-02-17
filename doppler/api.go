@@ -1633,7 +1633,9 @@ type oidcAuthResponse struct {
 	ExpiresAt string `json:"expires_at"`
 }
 
-func exchangeOIDCToken(host string, identity string, jwt string, verifyTLS bool) (string, error) {
+const maxOIDCResponseBytes = 1 << 20 // 1MB
+
+func exchangeOIDCToken(ctx context.Context, host string, identity string, jwt string, verifyTLS bool) (string, error) {
 	payload := oidcAuthRequest{
 		Identity: identity,
 		Token:    jwt,
@@ -1644,7 +1646,7 @@ func exchangeOIDCToken(host string, identity string, jwt string, verifyTLS bool)
 	}
 
 	requestUrl := fmt.Sprintf("%s/v3/auth/oidc", host)
-	req, err := http.NewRequest("POST", requestUrl, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", requestUrl, bytes.NewReader(body))
 	if err != nil {
 		return "", fmt.Errorf("unable to create OIDC auth request: %w", err)
 	}
@@ -1675,7 +1677,7 @@ func exchangeOIDCToken(host string, identity string, jwt string, verifyTLS bool)
 	}
 	defer r.Body.Close()
 
-	responseBody, err := ioutil.ReadAll(r.Body)
+	responseBody, err := io.ReadAll(io.LimitReader(r.Body, maxOIDCResponseBytes))
 	if err != nil {
 		return "", fmt.Errorf("unable to read OIDC auth response: %w", err)
 	}
