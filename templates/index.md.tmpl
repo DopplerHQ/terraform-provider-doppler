@@ -21,9 +21,16 @@ provider "doppler" {
 ### OIDC Authentication
 
 ```hcl
+# Using a token file (e.g. Kubernetes projected service account token)
 provider "doppler" {
   oidc_identity   = "<YOUR SERVICE ACCOUNT IDENTITY UUID>"
   oidc_token_file = "/var/run/secrets/tokens/doppler"
+}
+
+# Or using a token directly
+provider "doppler" {
+  oidc_identity = "<YOUR SERVICE ACCOUNT IDENTITY UUID>"
+  oidc_token    = "<YOUR OIDC JWT>"
 }
 ```
 
