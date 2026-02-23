@@ -23,9 +23,15 @@ provider "doppler" {
 }
 
 # Option 2: OIDC authentication (e.g. for Kubernetes workloads)
+# Using a token file:
 # provider "doppler" {
 #   oidc_identity   = "<YOUR SERVICE ACCOUNT IDENTITY UUID>"
 #   oidc_token_file = "/var/run/secrets/tokens/doppler"
+# }
+# Or using a token directly:
+# provider "doppler" {
+#   oidc_identity = "<YOUR SERVICE ACCOUNT IDENTITY UUID>"
+#   oidc_token    = "<YOUR OIDC JWT>"
 # }
 
 ###
