@@ -129,10 +129,11 @@ type IntegrationResponse struct {
 type SyncData = map[string]interface{}
 
 type Sync struct {
-	Slug        string `json:"slug"`
-	Project     string `json:"project"`
-	Config      string `json:"config"`
-	Integration string `json:"integration"`
+	Slug        string                 `json:"slug"`
+	Project     string                 `json:"project"`
+	Config      string                 `json:"config"`
+	Integration string                 `json:"integration"`
+	Data        map[string]interface{} `json:"data"`
 }
 
 type SyncResponse struct {
