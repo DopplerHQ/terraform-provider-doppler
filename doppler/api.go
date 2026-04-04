@@ -1620,3 +1620,84 @@ func (client APIClient) DeleteWorkplaceRole(ctx context.Context, identifier stri
 	}
 	return nil
 }
+
+// OIDC Authentication
+
+type oidcAuthRequest struct {
+	Identity string `json:"identity"`
+	Token    string `json:"token"`
+}
+
+type oidcAuthResponse struct {
+	Token     string `json:"token"`
+	ExpiresAt string `json:"expires_at"`
+}
+
+const maxOIDCResponseBytes = 1 << 20 // 1MB
+
+func exchangeOIDCToken(ctx context.Context, host string, identity string, jwt string, verifyTLS bool) (string, error) {
+	payload := oidcAuthRequest{
+		Identity: identity,
+		Token:    jwt,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("unable to serialize OIDC auth request: %w", err)
+	}
+
+	requestUrl := fmt.Sprintf("%s/v3/auth/oidc", host)
+	req, err := http.NewRequestWithContext(ctx, "POST", requestUrl, bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("unable to create OIDC auth request: %w", err)
+	}
+
+	userAgent := fmt.Sprintf("terraform-provider-doppler/%s", ProviderVersion)
+	req.Header.Set("user-agent", userAgent)
+	req.Header.Set("accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+	if !verifyTLS {
+		tlsConfig.InsecureSkipVerify = true
+	}
+
+	httpClient := &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+			TLSClientConfig:   tlsConfig,
+		},
+	}
+
+	r, err := httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("OIDC auth request failed: %w", err)
+	}
+	defer r.Body.Close()
+
+	responseBody, err := io.ReadAll(io.LimitReader(r.Body, maxOIDCResponseBytes))
+	if err != nil {
+		return "", fmt.Errorf("unable to read OIDC auth response: %w", err)
+	}
+
+	if !isSuccess(r.StatusCode) {
+		var errResponse ErrorResponse
+		if jsonErr := json.Unmarshal(responseBody, &errResponse); jsonErr == nil && len(errResponse.Messages) > 0 {
+			return "", fmt.Errorf("OIDC auth failed (HTTP %d): %s", r.StatusCode, strings.Join(errResponse.Messages, "; "))
+		}
+		return "", fmt.Errorf("OIDC auth failed with HTTP %d", r.StatusCode)
+	}
+
+	var result oidcAuthResponse
+	if err := json.Unmarshal(responseBody, &result); err != nil {
+		return "", fmt.Errorf("unable to parse OIDC auth response: %w", err)
+	}
+
+	if result.Token == "" {
+		return "", fmt.Errorf("OIDC auth response did not contain a token")
+	}
+
+	return result.Token, nil
+}
