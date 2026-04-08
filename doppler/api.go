@@ -1620,3 +1620,59 @@ func (client APIClient) DeleteWorkplaceRole(ctx context.Context, identifier stri
 	}
 	return nil
 }
+
+// Trusted IPs
+
+func (client APIClient) GetTrustedIPs(ctx context.Context, project, config string) ([]string, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+		{Key: "config", Value: config},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", "/v3/configs/config/trusted_ips", params, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result TrustedIPsResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse trusted IPs"}
+	}
+	return result.IPs, nil
+}
+
+func (client APIClient) AddTrustedIP(ctx context.Context, project, config, ip string) error {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+		{Key: "config", Value: config},
+	}
+	payload := map[string]interface{}{
+		"ip": ip,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return &APIError{Err: err, Message: "Unable to serialize trusted IP"}
+	}
+	_, err = client.PerformRequestWithRetry(ctx, "POST", "/v3/configs/config/trusted_ips", params, body)
+	return err
+}
+
+func (client APIClient) DeleteTrustedIP(ctx context.Context, project, config, ip string) error {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+		{Key: "config", Value: config},
+	}
+	payload := map[string]interface{}{
+		"ip": ip,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return &APIError{Err: err, Message: "Unable to serialize trusted IP"}
+	}
+	_, err = client.PerformRequestWithRetry(ctx, "DELETE", "/v3/configs/config/trusted_ips", params, body)
+	if err != nil {
+		if apiError, ok := err.(*APIError); ok && apiError.Response != nil && apiError.Response.HTTPResponse.StatusCode == 404 {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
