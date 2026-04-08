@@ -64,6 +64,23 @@ func isSuccess(statusCode int) bool {
 	return (statusCode >= 200 && statusCode <= 299) || (statusCode >= 300 && statusCode <= 399)
 }
 
+func isTransientStatusCode(statusCode int) bool {
+	return statusCode == 502 || statusCode == 503 || statusCode == 504
+}
+
+func isTransientError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+		return true
+	}
+	errStr := err.Error()
+	return strings.Contains(errStr, "EOF") ||
+		strings.Contains(errStr, "connection reset") ||
+		strings.Contains(errStr, "connection refused")
+}
+
 func getSecondsDuration(seconds int) *time.Duration {
 	duration := time.Duration(seconds) * time.Second
 	return &duration
@@ -129,7 +146,7 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 	r, err := httpClient.Do(req)
 	if err != nil {
 		var retryAfter *time.Duration
-		if e, ok := err.(net.Error); ok && e.Timeout() {
+		if isTransientError(err) {
 			retryAfter = getSecondsDuration(1)
 		}
 
@@ -182,7 +199,11 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 				Response:   response,
 			}
 		}
-		return nil, &APIError{Err: fmt.Errorf("%d status code; %d bytes", r.StatusCode, len(body)), Message: "Unable to load response", Response: response}
+		var retryAfter *time.Duration
+		if isTransientStatusCode(r.StatusCode) {
+			retryAfter = getSecondsDuration(1)
+		}
+		return nil, &APIError{Err: fmt.Errorf("%d status code; %d bytes", r.StatusCode, len(body)), Message: "Unable to load response", RetryAfter: retryAfter, Response: response}
 	}
 	if err != nil {
 		return nil, &APIError{Err: err, Message: "Unable to parse response data", Response: response}
