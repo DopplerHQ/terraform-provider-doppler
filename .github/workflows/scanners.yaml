@@ -1,0 +1,48 @@
+name: Scanners
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+
+jobs:
+  vulncheck:
+    name: Vulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v5
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.25" # GO_VERSION_DEF
+          check-latest: true
+      - name: Get official govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+        shell: bash
+      - name: Run govulncheck
+        run: govulncheck ./...
+        shell: bash
+
+  semgrep:
+    name: Semgrep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Scan
+        id: scan
+        run: |
+          set -eo pipefail;
+          python3 -m pip install semgrep;
+          semgrep scan --error --config https://semgrep.dev/p/trailofbits --config semgrep_configs
+
+  versioncheck:
+    name: Version Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Go Supported Version
+        uses: dopplerhq/go-supported-version-check-action@v1
+        with:
+          go-version: "1.25" # GO_VERSION_DEF
+          version-requirement: any-supported
