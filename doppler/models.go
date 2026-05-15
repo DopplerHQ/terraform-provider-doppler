@@ -485,3 +485,19 @@ type CreateWorkplaceRoleResponse struct {
 type UpdateWorkplaceRoleResponse struct {
 	Role WorkplaceRole `json:"role"`
 }
+
+type TrustedIPsResponse struct {
+	IPs []string `json:"ips"`
+}
+
+func getTrustedIPsResourceId(project, config string) string {
+	return strings.Join([]string{project, config}, ".")
+}
+
+func parseTrustedIPsResourceId(id string) (project string, config string, err error) {
+	tokens := strings.Split(id, ".")
+	if len(tokens) != 2 {
+		return "", "", errors.New("invalid trusted IPs resource ID")
+	}
+	return tokens[0], tokens[1], nil
+}
