@@ -114,6 +114,32 @@ func parseProjectMemberId(id string) (project string, memberType string, memberS
 	return tokens[0], tokens[1], tokens[2], nil
 }
 
+type IntegrationMemberRole struct {
+	Identifier string `json:"identifier"`
+}
+
+type IntegrationMember struct {
+	Type string                `json:"type"`
+	Slug string                `json:"slug"`
+	Role IntegrationMemberRole `json:"role"`
+}
+
+type IntegrationMemberResponse struct {
+	Member IntegrationMember `json:"member"`
+}
+
+func getIntegrationMemberId(integration string, memberType string, memberSlug string) string {
+	return strings.Join([]string{integration, memberType, memberSlug}, ".")
+}
+
+func parseIntegrationMemberId(id string) (integration string, memberType string, memberSlug string, err error) {
+	tokens := strings.Split(id, ".")
+	if len(tokens) != 3 {
+		return "", "", "", errors.New("invalid integration member ID")
+	}
+	return tokens[0], tokens[1], tokens[2], nil
+}
+
 type IntegrationData = map[string]interface{}
 
 type Integration struct {

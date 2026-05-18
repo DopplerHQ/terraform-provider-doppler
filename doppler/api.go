@@ -478,6 +478,79 @@ func (client APIClient) DeleteProjectMember(ctx context.Context, project string,
 	return nil
 }
 
+// Integration Members
+func (client APIClient) CreateIntegrationMember(ctx context.Context, integration string, memberType string, memberSlug string, role string) (*IntegrationMember, error) {
+	params := []QueryParam{
+		{Key: "integration", Value: integration},
+	}
+	payload := map[string]interface{}{
+		"slug": memberSlug,
+		"type": memberType,
+		"role": role,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize integration member"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/integrations/integration/members", params, body)
+	if err != nil {
+		return nil, err
+	}
+	var result IntegrationMemberResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse integration member"}
+	}
+	return &result.Member, nil
+}
+
+func (client APIClient) GetIntegrationMember(ctx context.Context, integration string, memberType string, memberSlug string) (*IntegrationMember, error) {
+	params := []QueryParam{
+		{Key: "integration", Value: integration},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/integrations/integration/members/member/%s/%s", url.QueryEscape(memberType), url.QueryEscape(memberSlug)), params, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result IntegrationMemberResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse integration member"}
+	}
+	return &result.Member, nil
+}
+
+func (client APIClient) UpdateIntegrationMember(ctx context.Context, integration string, memberType string, memberSlug string, role string) (*IntegrationMember, error) {
+	params := []QueryParam{
+		{Key: "integration", Value: integration},
+	}
+	payload := map[string]interface{}{
+		"role": role,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize integration member update"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "PATCH", fmt.Sprintf("/v3/integrations/integration/members/member/%s/%s", url.QueryEscape(memberType), url.QueryEscape(memberSlug)), params, body)
+	if err != nil {
+		return nil, err
+	}
+	var result IntegrationMemberResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse integration member"}
+	}
+	return &result.Member, nil
+}
+
+func (client APIClient) DeleteIntegrationMember(ctx context.Context, integration string, memberType string, memberSlug string) error {
+	params := []QueryParam{
+		{Key: "integration", Value: integration},
+	}
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/integrations/integration/members/member/%s/%s", url.QueryEscape(memberType), url.QueryEscape(memberSlug)), params, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Integrations
 
 func (client APIClient) GetIntegration(ctx context.Context, slug string) (*Integration, error) {
