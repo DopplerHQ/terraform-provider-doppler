@@ -33,6 +33,7 @@ func Provider() *schema.Provider {
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"doppler_secret":        resourceSecret(),
+			"doppler_secret_note":   resourceSecretNote(),
 			"doppler_project":       resourceProject(),
 			"doppler_environment":   resourceEnvironment(),
 			"doppler_config":        resourceConfig(),

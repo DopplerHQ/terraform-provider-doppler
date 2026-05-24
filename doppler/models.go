@@ -38,6 +38,7 @@ type Secret struct {
 type SecretValue struct {
 	Raw                *string    `json:"raw,omitempty"`
 	Computed           *string    `json:"computed,omitempty"`
+	Note               *string    `json:"note,omitempty"`
 	RawVisibility      *string    `json:"rawVisibility,omitempty"`
 	ComputedVisibility *string    `json:"computedVisibility,omitempty"`
 	RawValueType       *ValueType `json:"rawValueType,omitempty"`
