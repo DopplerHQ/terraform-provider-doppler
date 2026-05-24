@@ -282,7 +282,9 @@ func (client APIClient) SetSecretNote(ctx context.Context, project string, secre
 // GetSecretNote returns the note string for a (project, secretName) pair.
 // Notes are project-scoped but the Doppler API only exposes the field via
 // per-config secret reads, so this iterates root configs (one per environment)
-// until it finds a config where the secret exists.
+// until it finds a config where the secret exists. Per-env not-found errors
+// are tolerated (the secret may not exist in every env); any other error
+// returns immediately so transient 5xx or auth failures aren't masked.
 func (client APIClient) GetSecretNote(ctx context.Context, project string, secretName string) (string, error) {
 	envs, err := client.ListEnvironments(ctx, project)
 	if err != nil {
@@ -291,20 +293,18 @@ func (client APIClient) GetSecretNote(ctx context.Context, project string, secre
 	if len(envs) == 0 {
 		return "", &CustomNotFoundError{Message: "Project has no environments"}
 	}
-	var lastErr error
 	for _, env := range envs {
 		secret, err := client.GetSecret(ctx, project, env.Slug, secretName)
 		if err != nil {
-			lastErr = err
-			continue
+			if _, ok := err.(*CustomNotFoundError); ok {
+				continue
+			}
+			return "", err
 		}
 		if secret.Value.Note != nil {
 			return *secret.Value.Note, nil
 		}
 		return "", nil
-	}
-	if lastErr != nil {
-		return "", lastErr
 	}
 	return "", &CustomNotFoundError{Message: "Secret not found in any environment"}
 }
