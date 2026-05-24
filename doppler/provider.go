@@ -123,6 +123,7 @@ func Provider() *schema.Provider {
 			"doppler_user":         dataSourceUser(),
 			"doppler_group":        dataSourceGroup(),
 			"doppler_environments": dataSourceEnvironments(),
+			"doppler_project":      dataSourceProject(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}
