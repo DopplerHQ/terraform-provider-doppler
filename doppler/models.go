@@ -274,6 +274,7 @@ type ServiceToken struct {
 	Access      string `json:"access"`
 	Key         string `json:"key"`
 	CreatedAt   string `json:"created_at"`
+	ExpiresAt   string `json:"expires_at,omitempty"`
 }
 
 type ServiceTokenResponse struct {
