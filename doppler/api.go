@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -69,6 +68,24 @@ func getSecondsDuration(seconds int) *time.Duration {
 	return &duration
 }
 
+// httpClientWithTLSConfig builds the HTTP client used for all Doppler API calls, with a
+// shared TLS policy (minimum TLS 1.2, optional verification skip) and timeout.
+func httpClientWithTLSConfig(verifyTLS bool) *http.Client {
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+	if !verifyTLS {
+		tlsConfig.InsecureSkipVerify = true
+	}
+	return &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+			TLSClientConfig:   tlsConfig,
+		},
+	}
+}
+
 func (client APIClient) PerformRequestWithRetry(ctx context.Context, method string, path string, params []QueryParam, body []byte) (*APIResponse, error) {
 	var lastErr error
 	for i := 0; i < MAX_RETRIES; i++ {
@@ -97,7 +114,7 @@ func (client APIClient) PerformRequestWithRetry(ctx context.Context, method stri
 }
 
 func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (*APIResponse, error) {
-	httpClient := &http.Client{Timeout: 30 * time.Second}
+	httpClient := httpClientWithTLSConfig(client.VerifyTLS)
 
 	userAgent := fmt.Sprintf("terraform-provider-doppler/%s", ProviderVersion)
 	req.Header.Set("user-agent", userAgent)
@@ -112,19 +129,6 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 		query.Add(param.Key, param.Value)
 	}
 	req.URL.RawQuery = query.Encode()
-
-	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
-
-	if !client.VerifyTLS {
-		tlsConfig.InsecureSkipVerify = true
-	}
-
-	httpClient.Transport = &http.Transport{
-		DisableKeepAlives: true,
-		TLSClientConfig:   tlsConfig,
-	}
 
 	r, err := httpClient.Do(req)
 	if err != nil {
@@ -141,7 +145,7 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 		_ = r.Body.Close()
 	}()
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	response := &APIResponse{HTTPResponse: r, Body: body}
 	if err != nil {
 		return response, &APIError{Err: err, Message: "Unable to load response data", Response: response}
@@ -1629,8 +1633,7 @@ type oidcAuthRequest struct {
 }
 
 type oidcAuthResponse struct {
-	Token     string `json:"token"`
-	ExpiresAt string `json:"expires_at"`
+	Token string `json:"token"`
 }
 
 const maxOIDCResponseBytes = 1 << 20 // 1MB
@@ -1656,20 +1659,7 @@ func exchangeOIDCToken(ctx context.Context, host string, identity string, jwt st
 	req.Header.Set("accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
 
-	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
-	if !verifyTLS {
-		tlsConfig.InsecureSkipVerify = true
-	}
-
-	httpClient := &http.Client{
-		Timeout: 30 * time.Second,
-		Transport: &http.Transport{
-			DisableKeepAlives: true,
-			TLSClientConfig:   tlsConfig,
-		},
-	}
+	httpClient := httpClientWithTLSConfig(verifyTLS)
 
 	r, err := httpClient.Do(req)
 	if err != nil {
