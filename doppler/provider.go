@@ -5,16 +5,28 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var uuidRegex = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
-
 const defaultAPIHost = "https://api.doppler.com"
+
+func validateJWTShape(i interface{}, k string) ([]string, []error) {
+	v, ok := i.(string)
+	if !ok {
+		return nil, []error{fmt.Errorf("%q must be a string", k)}
+	}
+	if v == "" {
+		return nil, nil
+	}
+	if strings.Count(v, ".") != 2 {
+		return nil, []error{fmt.Errorf("%q must be a JWT with three dot-separated parts", k)}
+	}
+	return nil, nil
+}
 
 func Provider() *schema.Provider {
 	return &schema.Provider{
@@ -38,17 +50,19 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_TOKEN", nil),
 			},
 			"oidc_identity": {
-				Description: "The identity ID (UUID) of the Doppler service account identity for OIDC authentication. This can also be set via the DOPPLER_OIDC_IDENTITY environment variable.",
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_OIDC_IDENTITY", nil),
+				Description:  "The identity ID (UUID) of the Doppler service account identity for OIDC authentication. This can also be set via the DOPPLER_OIDC_IDENTITY environment variable.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				DefaultFunc:  schema.EnvDefaultFunc("DOPPLER_OIDC_IDENTITY", nil),
+				ValidateFunc: validation.IsUUID,
 			},
 			"oidc_token": {
-				Description: "A JWT token to use for OIDC authentication. Only one of `oidc_token` or `oidc_token_file` may be set. This can also be set via the DOPPLER_OIDC_TOKEN environment variable.",
-				Type:        schema.TypeString,
-				Optional:    true,
-				Sensitive:   true,
-				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_OIDC_TOKEN", nil),
+				Description:  "A JWT token to use for OIDC authentication. Only one of `oidc_token` or `oidc_token_file` may be set. This can also be set via the DOPPLER_OIDC_TOKEN environment variable.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				DefaultFunc:  schema.EnvDefaultFunc("DOPPLER_OIDC_TOKEN", nil),
+				ValidateFunc: validateJWTShape,
 			},
 			"oidc_token_file": {
 				Description: "A path to a file containing a JWT token for OIDC authentication (e.g. a Kubernetes projected service account token). Only one of `oidc_token` or `oidc_token_file` may be set. This can also be set via the DOPPLER_OIDC_TOKEN_FILE environment variable.",
@@ -199,16 +213,6 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 			}
 		}
 
-		if !uuidRegex.MatchString(oidcIdentity) {
-			return nil, diag.Diagnostics{
-				diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "Invalid OIDC identity format",
-					Detail:   fmt.Sprintf("`oidc_identity` must be a valid UUID (e.g. \"00000000-0000-0000-0000-000000000000\"), got: %q", oidcIdentity),
-				},
-			}
-		}
-
 		if oidcToken != "" && oidcTokenFile != "" {
 			return nil, diag.Diagnostics{
 				diag.Diagnostic{
@@ -273,16 +277,6 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 				})
 				return nil, diags
 			}
-		}
-
-		parts := strings.Split(jwt, ".")
-		if len(parts) != 3 {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Invalid OIDC token format",
-				Detail:   "The OIDC token does not appear to be a valid JWT (expected 3 dot-separated parts).",
-			})
-			return nil, diags
 		}
 
 		apiToken, err := exchangeOIDCToken(ctx, host, oidcIdentity, jwt, verifyTLS)
