@@ -11,16 +11,28 @@ terraform {
 ### Setup the Doppler provider
 ###
 
+# Option 1: Token authentication
 variable "doppler_token" {
   type = string
 }
 
-# The provider must always be specified with authentication
 provider "doppler" {
   # Your Doppler token, either a personal or service token
   doppler_token = var.doppler_token
   # The token can be provided with the environment variable `DOPPLER_TOKEN` instead
 }
+
+# Option 2: OIDC authentication (e.g. for Kubernetes workloads)
+# Using a token file:
+# provider "doppler" {
+#   oidc_identity   = "<YOUR SERVICE ACCOUNT IDENTITY UUID>"
+#   oidc_token_file = "/var/run/secrets/tokens/doppler"
+# }
+# Or using a token directly:
+# provider "doppler" {
+#   oidc_identity = "<YOUR SERVICE ACCOUNT IDENTITY UUID>"
+#   oidc_token    = "<YOUR OIDC JWT>"
+# }
 
 ###
 ### Read Doppler secrets with the doppler_secrets data provider
