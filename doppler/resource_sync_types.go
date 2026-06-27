@@ -572,6 +572,98 @@ func resourceSyncAzureVault() *schema.Resource {
 	return builder.Build()
 }
 
+func resourceSyncVercel() *schema.Resource {
+	builder := ResourceSyncBuilder{
+		DataSchema: map[string]*schema.Schema{
+			"team_id": {
+				Description: "The Vercel team ID",
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+			},
+			"project_id": {
+				Description: "The Vercel project ID",
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+			},
+			"target_id": {
+				Description: "The Vercel environment target (\"production\", \"preview\", \"development\", or a custom environment ID)",
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+			},
+			"variable_type": {
+				Description:  "The type of Vercel environment variable (\"encrypted\", \"sensitive\", \"plain\")",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice([]string{"encrypted", "sensitive", "plain"}, false),
+				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
+					if oldValue == "" && newValue == "encrypted" {
+						return true
+					} else if oldValue == "encrypted" && newValue == "" {
+						return true
+					} else {
+						return newValue == oldValue
+					}
+				},
+			},
+		},
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			payload := map[string]interface{}{
+				"project_id": d.Get("project_id"),
+				"target_id":  d.Get("target_id"),
+			}
+			if teamID, ok := d.GetOk("team_id"); ok {
+				payload["team_id"] = teamID
+			}
+			if variableType, ok := d.GetOk("variable_type"); ok {
+				payload["variable_type"] = variableType
+			}
+			return payload
+		},
+		DataReader: func(data map[string]interface{}, d *schema.ResourceData) error {
+			for _, key := range []string{"team_id", "project_id", "target_id", "variable_type"} {
+				if v, ok := data[key]; ok {
+					if err := d.Set(key, v); err != nil {
+						return err
+					}
+				}
+			}
+			return nil
+		},
+	}
+	return builder.Build()
+}
+
+func resourceSyncSupabase() *schema.Resource {
+	builder := ResourceSyncBuilder{
+		DataSchema: map[string]*schema.Schema{
+			"project_id": {
+				Description: "The Supabase project reference ID",
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+			},
+		},
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			return map[string]interface{}{
+				"project_id": d.Get("project_id"),
+			}
+		},
+		DataReader: func(data map[string]interface{}, d *schema.ResourceData) error {
+			if v, ok := data["project_id"]; ok {
+				if err := d.Set("project_id", v); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	}
+	return builder.Build()
+}
+
 func resourceSyncGCPSecretManager() *schema.Resource {
 	name_regex, _ := regexp.Compile("^[a-zA-Z0-9_-]*$")
 	builder := ResourceSyncBuilder{
