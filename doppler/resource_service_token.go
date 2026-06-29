@@ -42,6 +42,13 @@ func resourceServiceToken() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{"read", "read/write"}, false),
 				ForceNew:     true,
 			},
+			"expire_at": {
+				Description:  "The expiration time of the token as an RFC3339 timestamp (e.g. `2026-12-31T23:59:59Z`). If omitted, the token never expires.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.IsRFC3339Time,
+			},
 			"key": {
 				Description: "The key for the Doppler service token",
 				Type:        schema.TypeString,
@@ -60,8 +67,9 @@ func resourceServiceTokenCreate(ctx context.Context, d *schema.ResourceData, m i
 	config := d.Get("config").(string)
 	access := d.Get("access").(string)
 	name := d.Get("name").(string)
+	expireAt := d.Get("expire_at").(string)
 
-	token, err := client.CreateServiceToken(ctx, project, config, access, name)
+	token, err := client.CreateServiceToken(ctx, project, config, access, name, expireAt)
 	if err != nil {
 		return diag.FromErr(err)
 	}
