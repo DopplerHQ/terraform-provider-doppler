@@ -105,6 +105,7 @@ func Provider() *schema.Provider {
 			// creating integrations is not currently supported for GitHub syncs
 			// "doppler_integration_github":  resourceIntegrationGitHub(),
 			"doppler_secrets_sync_github_actions":    resourceSyncGitHubActions(),
+			"doppler_secrets_sync_github_agents":     resourceSyncGitHubAgents(),
 			"doppler_secrets_sync_github_codespaces": resourceSyncGitHubCodespaces(),
 			"doppler_secrets_sync_github_dependabot": resourceSyncGitHubDependabot(),
 
