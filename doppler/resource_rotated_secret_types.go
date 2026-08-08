@@ -93,6 +93,24 @@ func resourceRotatedSecretMongoDBAtlas() *schema.Resource {
 	return builder.Build()
 }
 
+func resourceRotatedSecretOpenAI() *schema.Resource {
+	builder := ResourceRotatedSecretBuilder{
+		ParametersSchema: map[string]*schema.Schema{
+			"project_id": {
+				Description: "The OpenAI project ID to create service accounts in",
+				Type:        schema.TypeString,
+				Required:    true,
+			},
+		},
+		ParametersBuilder: func(d *schema.ResourceData) RotatedSecretParameters {
+			return map[string]interface{}{
+				"projectId": d.Get("project_id"),
+			}
+		},
+	}
+	return builder.Build()
+}
+
 func resourceRotatedSecretSendGrid() *schema.Resource {
 	builder := ResourceRotatedSecretBuilder{
 		ParametersSchema: map[string]*schema.Schema{

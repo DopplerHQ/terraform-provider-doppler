@@ -228,6 +228,26 @@ func resourceIntegrationMongoDBAtlas() *schema.Resource {
 	return builder.Build()
 }
 
+func resourceIntegrationOpenAI() *schema.Resource {
+	builder := ResourceIntegrationBuilder{
+		Type: "openai_service_account",
+		DataSchema: map[string]*schema.Schema{
+			"admin_key": {
+				Description: "The OpenAI admin key",
+				Type:        schema.TypeString,
+				Required:    true,
+				Sensitive:   true,
+			},
+		},
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			return map[string]interface{}{
+				"adminKey": d.Get("admin_key"),
+			}
+		},
+	}
+	return builder.Build()
+}
+
 func resourceIntegrationSendGrid() *schema.Resource {
 	builder := ResourceIntegrationBuilder{
 		Type: "sendgrid",
