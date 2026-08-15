@@ -34,6 +34,7 @@ resource "doppler_service_token" "backend_ci_token" {
 ### Optional
 
 - `access` (String) The access level (read or read/write)
+- `expire_at` (String) The expiration time of the token as an RFC3339 timestamp (e.g. `2026-12-31T23:59:59Z`). If omitted, the token never expires.
 
 ### Read-Only
 
