@@ -8,11 +8,13 @@ import (
 )
 
 type IntegrationDataBuilderFunc = func(d *schema.ResourceData) IntegrationData
+type IntegrationComputedFieldsFunc = func(d *schema.ResourceData, integ *Integration) error
 
 type ResourceIntegrationBuilder struct {
-	Type        string
-	DataSchema  map[string]*schema.Schema
-	DataBuilder IntegrationDataBuilderFunc
+	Type               string
+	DataSchema         map[string]*schema.Schema
+	DataBuilder        IntegrationDataBuilderFunc
+	ComputedFieldsFunc IntegrationComputedFieldsFunc
 }
 
 // resourceIntegration returns a schema resource object for the integration model.
@@ -54,6 +56,12 @@ func (builder ResourceIntegrationBuilder) CreateContextFunc() schema.CreateConte
 
 		d.SetId(integ.Slug)
 
+		if builder.ComputedFieldsFunc != nil {
+			if err := builder.ComputedFieldsFunc(d, integ); err != nil {
+				return diag.FromErr(err)
+			}
+		}
+
 		return diags
 	}
 }
@@ -82,10 +90,17 @@ func (builder ResourceIntegrationBuilder) UpdateContextFunc() schema.UpdateConte
 			data = builder.DataBuilder(d)
 		}
 
-		_, err := client.UpdateIntegration(ctx, slug, name, data)
+		integ, err := client.UpdateIntegration(ctx, slug, name, data)
 		if err != nil {
 			return diag.FromErr(err)
 		}
+
+		if builder.ComputedFieldsFunc != nil {
+			if err := builder.ComputedFieldsFunc(d, integ); err != nil {
+				return diag.FromErr(err)
+			}
+		}
+
 		return diags
 	}
 }
@@ -105,6 +120,12 @@ func (builder ResourceIntegrationBuilder) ReadContextFunc() schema.ReadContextFu
 
 		if err = d.Set("name", integ.Name); err != nil {
 			return diag.FromErr(err)
+		}
+
+		if builder.ComputedFieldsFunc != nil {
+			if err := builder.ComputedFieldsFunc(d, integ); err != nil {
+				return diag.FromErr(err)
+			}
 		}
 
 		return diags
