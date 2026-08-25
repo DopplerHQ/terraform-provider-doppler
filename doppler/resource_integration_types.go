@@ -1,7 +1,10 @@
 package doppler
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func awsAssumeRoleDataSchema() map[string]*schema.Schema {
@@ -443,6 +446,170 @@ func resourceIntegrationAWSMSSQLServer() *schema.Resource {
 				"lambdaARN": d.Get("lambda_arn"),
 			}
 		},
+	}
+	return builder.Build()
+}
+
+func gcpOIDCDataSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"gcp_workload_identity_provider": {
+			Description: "The full resource name of the workload identity pool provider Doppler federates with, e.g. `//iam.googleapis.com/projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider`. Note that it uses the numeric project number, not the project ID.",
+			Type:        schema.TypeString,
+			Required:    true,
+		},
+		"gcp_project_id": {
+			Description: "The ID of the GCP project the integration operates on",
+			Type:        schema.TypeString,
+			Required:    true,
+		},
+		"federation_principal": {
+			Description: "The IAM principal identifier to grant roles to in GCP for this integration",
+			Type:        schema.TypeString,
+			Computed:    true,
+		},
+	}
+}
+
+func gcpFederationComputedFields(d *schema.ResourceData, integ *Integration) error {
+	f := integ.Federation
+	if f == nil || f.Principal == "" {
+		return fmt.Errorf("the Doppler API returned no federation setup values for this integration; verify the connection still uses keyless (OIDC) auth and that this Doppler version supports it")
+	}
+	return d.Set("federation_principal", f.Principal)
+}
+
+func azureFederationComputedFields(d *schema.ResourceData, integ *Integration) error {
+	f := integ.Federation
+	if f == nil || f.Issuer == "" || f.Subject == "" || f.Audience == "" {
+		return fmt.Errorf("the Doppler API returned no federation setup values for this integration; verify the connection still uses keyless (OIDC) auth and that this Doppler version supports it")
+	}
+	if err := d.Set("federation_issuer", f.Issuer); err != nil {
+		return err
+	}
+	if err := d.Set("federation_subject", f.Subject); err != nil {
+		return err
+	}
+	return d.Set("federation_audience", f.Audience)
+}
+
+func resourceIntegrationGCPSecretManagerOIDC() *schema.Resource {
+	dataSchema := gcpOIDCDataSchema()
+	dataSchema["gcp_secret_prefix"] = &schema.Schema{
+		Description: "The prefix added to any secret created by this integration in GCP. Cannot be changed after the integration is created.",
+		Type:        schema.TypeString,
+		Optional:    true,
+		ForceNew:    true,
+	}
+	builder := ResourceIntegrationBuilder{
+		Type:       "gcp_secret_manager",
+		DataSchema: dataSchema,
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			data := map[string]interface{}{
+				"authMethod":                     "oidc",
+				"gcp_workload_identity_provider": d.Get("gcp_workload_identity_provider"),
+				"gcp_project_id":                 d.Get("gcp_project_id"),
+			}
+			if prefix := d.Get("gcp_secret_prefix").(string); prefix != "" {
+				data["gcp_secret_prefix"] = prefix
+			}
+			return data
+		},
+		ComputedFieldsFunc: gcpFederationComputedFields,
+	}
+	return builder.Build()
+}
+
+func resourceIntegrationGCPCloudSQLOIDC(integrationType string) *schema.Resource {
+	builder := ResourceIntegrationBuilder{
+		Type:       integrationType,
+		DataSchema: gcpOIDCDataSchema(),
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			return map[string]interface{}{
+				"authMethod":                     "oidc",
+				"gcp_workload_identity_provider": d.Get("gcp_workload_identity_provider"),
+				"gcp_project_id":                 d.Get("gcp_project_id"),
+			}
+		},
+		ComputedFieldsFunc: gcpFederationComputedFields,
+	}
+	return builder.Build()
+}
+
+func resourceIntegrationAzureServicePrincipal(integrationType string) *schema.Resource {
+	builder := ResourceIntegrationBuilder{
+		Type: integrationType,
+		DataSchema: map[string]*schema.Schema{
+			"tenant_id": {
+				Description:  "The Azure directory (tenant) ID",
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.IsUUID,
+			},
+			"client_id": {
+				Description:  "The application (client) ID of the managing service principal",
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.IsUUID,
+			},
+			"client_secret": {
+				Description: "The client secret of the managing service principal",
+				Type:        schema.TypeString,
+				Required:    true,
+				Sensitive:   true,
+			},
+		},
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			return map[string]interface{}{
+				"tenantId":     d.Get("tenant_id"),
+				"clientId":     d.Get("client_id"),
+				"clientSecret": d.Get("client_secret"),
+				"authMethod":   "clientSecret",
+			}
+		},
+	}
+	return builder.Build()
+}
+
+func resourceIntegrationAzureServicePrincipalOIDC(integrationType string) *schema.Resource {
+	builder := ResourceIntegrationBuilder{
+		Type: integrationType,
+		DataSchema: map[string]*schema.Schema{
+			"tenant_id": {
+				Description:  "The Azure directory (tenant) ID",
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.IsUUID,
+			},
+			"client_id": {
+				Description:  "The application (client) ID of the managing service principal",
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.IsUUID,
+			},
+			"federation_issuer": {
+				Description: "The issuer of the OIDC tokens Doppler issues for this integration",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"federation_subject": {
+				Description: "The subject of the OIDC tokens Doppler issues for this integration",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"federation_audience": {
+				Description: "The audience to configure on the federated identity credential",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+		},
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			return map[string]interface{}{
+				"tenantId":   d.Get("tenant_id"),
+				"clientId":   d.Get("client_id"),
+				"authMethod": "oidc",
+			}
+		},
+		ComputedFieldsFunc: azureFederationComputedFields,
 	}
 	return builder.Build()
 }

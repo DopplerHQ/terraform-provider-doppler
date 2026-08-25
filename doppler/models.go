@@ -144,9 +144,20 @@ func parseIntegrationMemberId(id string) (integration string, memberType string,
 type IntegrationData = map[string]interface{}
 
 type Integration struct {
-	Slug string `json:"slug"`
-	Name string `json:"name"`
-	Type string `json:"type"`
+	Slug       string           `json:"slug"`
+	Name       string           `json:"name"`
+	Type       string           `json:"type"`
+	Federation *FederationSetup `json:"federation"`
+}
+
+// FederationSetup is the keyless-federation identity a customer grants in their cloud to
+// authorize a connection. Kind "gcp" sets principal; kind "azure" sets issuer/subject/audience.
+type FederationSetup struct {
+	Kind      string `json:"kind"`
+	Principal string `json:"principal"`
+	Issuer    string `json:"issuer"`
+	Subject   string `json:"subject"`
+	Audience  string `json:"audience"`
 }
 
 type IntegrationResponse struct {

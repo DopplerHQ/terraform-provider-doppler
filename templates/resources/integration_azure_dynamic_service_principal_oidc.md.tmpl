@@ -1,0 +1,18 @@
+---
+page_title: "doppler_integration_azure_dynamic_service_principal_oidc Resource - terraform-provider-doppler"
+subcategory: "Integrations"
+description: |-
+	Manage an Azure Dynamic Service Principal Doppler integration using workload identity federation.
+---
+
+# doppler_integration_azure_dynamic_service_principal_oidc (Resource)
+
+Manage an Azure Dynamic Service Principal Doppler integration using workload identity federation.
+
+The managing app registration must already exist in your tenant, with a service principal, admin-consented Microsoft Graph application permissions, and ownership of the target applications it manages.
+
+## Example Usage
+
+{{tffile "examples/resources/integration_azure_dynamic_service_principal_oidc.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}

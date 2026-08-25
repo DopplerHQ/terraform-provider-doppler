@@ -145,8 +145,18 @@ func Provider() *schema.Provider {
 			"doppler_integration_azure_vault_service_principal": resourceIntegrationAzureVaultServicePrincipal(),
 			"doppler_secrets_sync_azure_vault":                  resourceSyncAzureVault(),
 
+			"doppler_integration_azure_rotated_service_principal":      resourceIntegrationAzureServicePrincipal("azure_rotated_service_principal"),
+			"doppler_integration_azure_rotated_service_principal_oidc": resourceIntegrationAzureServicePrincipalOIDC("azure_rotated_service_principal"),
+			"doppler_integration_azure_dynamic_service_principal":      resourceIntegrationAzureServicePrincipal("azure_dynamic_service_principal"),
+			"doppler_integration_azure_dynamic_service_principal_oidc": resourceIntegrationAzureServicePrincipalOIDC("azure_dynamic_service_principal"),
+
 			"doppler_integration_gcp_secret_manager":  resourceIntegrationGCPSecretManager(),
 			"doppler_secrets_sync_gcp_secret_manager": resourceSyncGCPSecretManager(),
+
+			"doppler_integration_gcp_secret_manager_oidc":     resourceIntegrationGCPSecretManagerOIDC(),
+			"doppler_integration_gcp_cloudsql_mysql_oidc":     resourceIntegrationGCPCloudSQLOIDC("gcp_cloudsql_mysql"),
+			"doppler_integration_gcp_cloudsql_postgres_oidc":  resourceIntegrationGCPCloudSQLOIDC("gcp_cloudsql_postgres"),
+			"doppler_integration_gcp_cloudsql_sqlserver_oidc": resourceIntegrationGCPCloudSQLOIDC("gcp_cloudsql_sqlserver"),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"doppler_secrets":      dataSourceSecrets(),
