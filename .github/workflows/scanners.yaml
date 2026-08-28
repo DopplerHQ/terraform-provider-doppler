@@ -12,9 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: "1.25" # GO_VERSION_DEF
           check-latest: true
@@ -29,7 +29,7 @@ jobs:
     name: Semgrep
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Scan
         id: scan
         run: |
@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Go Supported Version
-        uses: dopplerhq/go-supported-version-check-action@v1
+        uses: dopplerhq/go-supported-version-check-action@9e57bbb76bc6b20129c0a2aaf65fd9a2b7634a6b # v1.0.0
         with:
           go-version: "1.25" # GO_VERSION_DEF
           version-requirement: any-supported
