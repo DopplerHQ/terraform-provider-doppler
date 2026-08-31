@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Go Supported Version
-        uses: dopplerhq/go-supported-version-check-action@9e57bbb76bc6b20129c0a2aaf65fd9a2b7634a6b # v1.0.0
+        uses: dopplerhq/go-supported-version-check-action@56fa9474fc6a8a9ffd3a58ebee78be915609a937 # v2.0.0
         with:
           go-version: "1.25" # GO_VERSION_DEF
           version-requirement: any-supported
