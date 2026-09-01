@@ -1230,12 +1230,15 @@ func (client APIClient) GetServiceTokens(ctx context.Context, project string, co
 	return result.ServiceTokens, nil
 }
 
-func (client APIClient) CreateServiceToken(ctx context.Context, project string, config string, access string, name string) (*ServiceToken, error) {
+func (client APIClient) CreateServiceToken(ctx context.Context, project string, config string, access string, name string, expireAt string) (*ServiceToken, error) {
 	payload := map[string]interface{}{
 		"project": project,
 		"config":  config,
 		"access":  access,
 		"name":    name,
+	}
+	if expireAt != "" {
+		payload["expire_at"] = expireAt
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
