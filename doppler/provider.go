@@ -78,6 +78,8 @@ func Provider() *schema.Provider {
 			"doppler_group_member":  resourceGroupMemberWorkplaceUser(),
 			"doppler_group_members": resourceGroupMembers(),
 
+			"doppler_tag": resourceTag(),
+
 			"doppler_webhook": resourceWebhook(),
 
 			"doppler_change_request_policy": resourceChangeRequestPolicy(),
