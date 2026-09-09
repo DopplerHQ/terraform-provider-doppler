@@ -1604,6 +1604,122 @@ func (client APIClient) ReplaceGroupMembers(ctx context.Context, group string, m
 	return nil
 }
 
+// Tags
+
+func (client APIClient) GetTag(ctx context.Context, slug string) (*Tag, error) {
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/workplace/tags/tag/%s", url.QueryEscape(slug)), []QueryParam{}, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result TagResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse tag"}
+	}
+	return &result.Tag, nil
+}
+
+func (client APIClient) CreateTag(ctx context.Context, name string, color string, slug string) (*Tag, error) {
+	payload := map[string]interface{}{
+		"name":  name,
+		"color": color,
+	}
+	if slug != "" {
+		payload["slug"] = slug
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize tag"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/workplace/tags", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result TagResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse tag"}
+	}
+	return &result.Tag, nil
+}
+
+func (client APIClient) UpdateTag(ctx context.Context, slug string, name string, color string) (*Tag, error) {
+	payload := map[string]interface{}{
+		"name":  name,
+		"color": color,
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize tag"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "PATCH", fmt.Sprintf("/v3/workplace/tags/tag/%s", url.QueryEscape(slug)), []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result TagResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse tag"}
+	}
+	return &result.Tag, nil
+}
+
+func (client APIClient) DeleteTag(ctx context.Context, slug string) error {
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/workplace/tags/tag/%s", url.QueryEscape(slug)), []QueryParam{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Project Tags
+
+func (client APIClient) GetProjectTag(ctx context.Context, project string, tagSlug string) error {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", "/v3/projects/project/tags", params, nil)
+	if err != nil {
+		return err
+	}
+	var result TagsResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return &APIError{Err: err, Message: "Unable to parse project tags"}
+	}
+	for _, tag := range result.Tags {
+		if tag.Slug == tagSlug {
+			return nil
+		}
+	}
+	return &CustomNotFoundError{Message: "Could not find requested project tag"}
+}
+
+func (client APIClient) CreateProjectTag(ctx context.Context, project string, tagSlug string) error {
+	payload := map[string]interface{}{
+		"project": project,
+		"tag":     tagSlug,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return &APIError{Err: err, Message: "Unable to serialize project tag"}
+	}
+	_, err = client.PerformRequestWithRetry(ctx, "POST", "/v3/projects/project/tags", []QueryParam{}, body)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (client APIClient) DeleteProjectTag(ctx context.Context, project string, tagSlug string) error {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/projects/project/tags/tag/%s", url.QueryEscape(tagSlug)), params, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Workplace Users
 
 func (client APIClient) GetWorkplaceUser(ctx context.Context, email string) (*WorkplaceUser, error) {
