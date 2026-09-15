@@ -351,9 +351,8 @@ func resourceSyncGitHubActions() *schema.Resource {
 			if org_scope != "" {
 				payload["org_scope"] = org_scope
 			}
-			environment_name := d.Get("environment_name")
-			if environment_name != "" {
-				payload["environment_name"] = environment_name
+			if payload["sync_target"] == "repo" {
+				payload["environment_name"] = d.Get("environment_name")
 			}
 			sync_unmasked_as_variables := d.Get("sync_unmasked_as_variables")
 			if sync_unmasked_as_variables != "" {
