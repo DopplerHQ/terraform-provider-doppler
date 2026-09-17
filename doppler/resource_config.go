@@ -62,6 +62,18 @@ func resourceConfig() *schema.Resource {
 	}
 }
 
+// A nil slice and an empty slice both mean "inherits nothing", but
+// reflect.DeepEqual reports them as unequal. The API returns `"inherits": []`,
+// which unmarshals to an empty non-nil slice, while inheritsArgToDescriptors
+// returns nil for an empty list - so comparing them directly reported a change
+// for every config that inherits nothing.
+func configDescriptorsEqual(a []ConfigDescriptor, b []ConfigDescriptor) bool {
+	if len(a) == 0 && len(b) == 0 {
+		return true
+	}
+	return reflect.DeepEqual(a, b)
+}
+
 func inheritsArgToDescriptors(inherits []interface{}) ([]ConfigDescriptor, error) {
 	var descriptors []ConfigDescriptor
 
@@ -122,7 +134,7 @@ func resourceConfigCreate(ctx context.Context, d *schema.ResourceData, m interfa
 		if err != nil {
 			return diag.FromErr(err)
 		}
-		if !reflect.DeepEqual(config.Inherits, descriptors) {
+		if !configDescriptorsEqual(config.Inherits, descriptors) {
 			config, err = client.UpdateConfigInherits(ctx, project, name, descriptors)
 			if err != nil {
 				return diag.FromErr(err)
