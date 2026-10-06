@@ -475,6 +475,33 @@ func parseGroupMemberId(id string) (group string, memberType string, memberSlug 
 	return tokens[0], tokens[1], tokens[2], nil
 }
 
+type Tag struct {
+	Slug      string `json:"slug"`
+	Name      string `json:"name"`
+	Color     string `json:"color"`
+	CreatedAt string `json:"created_at"`
+}
+
+type TagResponse struct {
+	Tag Tag `json:"tag"`
+}
+
+type TagsResponse struct {
+	Tags []Tag `json:"tags"`
+}
+
+func getProjectTagId(project string, tagSlug string) string {
+	return strings.Join([]string{project, tagSlug}, ".")
+}
+
+func parseProjectTagId(id string) (project string, tagSlug string, err error) {
+	tokens := strings.SplitN(id, ".", 2)
+	if len(tokens) != 2 {
+		return "", "", errors.New("invalid project tag ID")
+	}
+	return tokens[0], tokens[1], nil
+}
+
 type ChangeRequestPolicySubject struct {
 	Type string `json:"type"`
 	Slug string `json:"slug"`
