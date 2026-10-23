@@ -85,9 +85,12 @@ func Provider() *schema.Provider {
 
 			"doppler_change_request_policy": resourceChangeRequestPolicy(),
 
-			"doppler_project_member_group":           resourceProjectMemberGroup(),
-			"doppler_project_member_service_account": resourceProjectMemberServiceAccount(),
-			"doppler_project_member_user":            resourceProjectMemberUser(),
+			"doppler_project_member_group":                           resourceProjectMemberGroup(),
+			"doppler_project_member_service_account":                 resourceProjectMemberServiceAccount(),
+			"doppler_project_member_user":                            resourceProjectMemberUser(),
+			"doppler_project_member_group_role_assignment":           resourceProjectMemberGroupRoleAssignment(),
+			"doppler_project_member_service_account_role_assignment": resourceProjectMemberServiceAccountRoleAssignment(),
+			"doppler_project_member_user_role_assignment":            resourceProjectMemberUserRoleAssignment(),
 
 			"doppler_integration_member_group":           resourceIntegrationMemberGroup(),
 			"doppler_integration_member_service_account": resourceIntegrationMemberServiceAccount(),

@@ -531,6 +531,72 @@ func (client APIClient) DeleteProjectMember(ctx context.Context, project string,
 	return nil
 }
 
+// Project Member Roles
+func (client APIClient) CreateProjectMemberRole(ctx context.Context, project string, memberType string, memberSlug string, role string, environments []string) (*ProjectMemberRoleAssignment, error) {
+	if environments == nil {
+		environments = []string{}
+	}
+	payload := map[string]interface{}{
+		"project":      project,
+		"role":         role,
+		"environments": environments,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize project member role"}
+	}
+	_, err = client.PerformRequestWithRetry(ctx, "POST", fmt.Sprintf("/v3/projects/project/members/member/%s/%s/roles", url.QueryEscape(memberType), url.QueryEscape(memberSlug)), []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	return client.GetProjectMemberRole(ctx, project, memberType, memberSlug, role)
+}
+
+func (client APIClient) GetProjectMemberRole(ctx context.Context, project string, memberType string, memberSlug string, role string) (*ProjectMemberRoleAssignment, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/projects/project/members/member/%s/%s/roles/role/%s", url.QueryEscape(memberType), url.QueryEscape(memberSlug), url.PathEscape(role)), params, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result ProjectMemberRoleAssignmentResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse project member role"}
+	}
+	return &result.Role, nil
+}
+
+func (client APIClient) UpdateProjectMemberRole(ctx context.Context, project string, memberType string, memberSlug string, role string, environments []string) (*ProjectMemberRoleAssignment, error) {
+	if environments == nil {
+		environments = []string{}
+	}
+	payload := map[string]interface{}{
+		"project":      project,
+		"environments": environments,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize project member role update"}
+	}
+	_, err = client.PerformRequestWithRetry(ctx, "PATCH", fmt.Sprintf("/v3/projects/project/members/member/%s/%s/roles/role/%s", url.QueryEscape(memberType), url.QueryEscape(memberSlug), url.PathEscape(role)), []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	return client.GetProjectMemberRole(ctx, project, memberType, memberSlug, role)
+}
+
+func (client APIClient) DeleteProjectMemberRole(ctx context.Context, project string, memberType string, memberSlug string, role string) error {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/projects/project/members/member/%s/%s/roles/role/%s", url.QueryEscape(memberType), url.QueryEscape(memberSlug), url.PathEscape(role)), params, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Integration Members
 func (client APIClient) CreateIntegrationMember(ctx context.Context, integration string, memberType string, memberSlug string, role string) (*IntegrationMember, error) {
 	params := []QueryParam{
