@@ -103,6 +103,21 @@ type ProjectMemberResponse struct {
 	Member ProjectMember `json:"member"`
 }
 
+type ProjectMemberRoleAssignment struct {
+	Role         ProjectMemberRole `json:"role"`
+	Environments []string          `json:"environments,omitempty"`
+}
+
+type ProjectMemberRoleAssignmentResponse struct {
+	Role ProjectMemberRoleAssignment `json:"role"`
+}
+
+type ProjectMemberRoleAssignmentsResponse struct {
+	Member struct {
+		Roles []ProjectMemberRoleAssignment `json:"roles"`
+	} `json:"member"`
+}
+
 func getProjectMemberId(project string, memberType string, memberSlug string) string {
 	return strings.Join([]string{project, memberType, memberSlug}, ".")
 }
@@ -113,6 +128,18 @@ func parseProjectMemberId(id string) (project string, memberType string, memberS
 		return "", "", "", errors.New("invalid project member ID")
 	}
 	return tokens[0], tokens[1], tokens[2], nil
+}
+
+func getProjectMemberRoleId(project string, memberType string, memberSlug string, role string) string {
+	return strings.Join([]string{project, memberType, memberSlug, role}, ".")
+}
+
+func parseProjectMemberRoleId(id string) (project string, memberType string, memberSlug string, role string, err error) {
+	tokens := strings.Split(id, ".")
+	if len(tokens) != 4 {
+		return "", "", "", "", errors.New("invalid project member role ID")
+	}
+	return tokens[0], tokens[1], tokens[2], tokens[3], nil
 }
 
 type IntegrationMemberRole struct {
