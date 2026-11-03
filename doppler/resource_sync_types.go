@@ -650,11 +650,11 @@ func resourceSyncVercel() *schema.Resource {
 				ForceNew:    true,
 			},
 			"variable_type": {
-				Description:  "The type of Vercel environment variable (\"encrypted\", \"sensitive\", \"plain\")",
+				Description:  "The Vercel variable type (\"config\", \"secret\", or \"dynamic\"). The legacy values \"encrypted\" and \"sensitive\" are also accepted.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validation.StringInSlice([]string{"encrypted", "sensitive", "plain"}, false),
+				ValidateFunc: validation.StringInSlice([]string{"config", "secret", "dynamic", "encrypted", "sensitive"}, false),
 				DiffSuppressFunc: func(k, oldValue, newValue string, d *schema.ResourceData) bool {
 					if oldValue == "" && newValue == "encrypted" {
 						return true

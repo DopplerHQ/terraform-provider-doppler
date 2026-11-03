@@ -52,7 +52,7 @@ resource "doppler_secrets_sync_vercel" "backend_stg" {
 
 - `delete_behavior` (String) The behavior to be performed on the secrets in the sync target when this resource is deleted or recreated. Either `leave_in_target` (default) or `delete_from_target`.
 - `team_id` (String) The Vercel team ID. Required for team-scoped projects, omit for personal account projects.
-- `variable_type` (String) The type of Vercel environment variable ("encrypted", "sensitive", "plain"). Defaults to "encrypted" if omitted.
+- `variable_type` (String) The Vercel variable type ("config", "secret", or "dynamic"). The legacy values "encrypted" and "sensitive" are also accepted. Defaults to "encrypted" if omitted.
 
 ### Read-Only
 
