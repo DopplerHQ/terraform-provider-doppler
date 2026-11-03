@@ -38,6 +38,7 @@ type Secret struct {
 type SecretValue struct {
 	Raw                *string    `json:"raw,omitempty"`
 	Computed           *string    `json:"computed,omitempty"`
+	Note               *string    `json:"note,omitempty"`
 	RawVisibility      *string    `json:"rawVisibility,omitempty"`
 	ComputedVisibility *string    `json:"computedVisibility,omitempty"`
 	RawValueType       *ValueType `json:"rawValueType,omitempty"`
@@ -102,6 +103,21 @@ type ProjectMemberResponse struct {
 	Member ProjectMember `json:"member"`
 }
 
+type ProjectMemberRoleAssignment struct {
+	Role         ProjectMemberRole `json:"role"`
+	Environments []string          `json:"environments,omitempty"`
+}
+
+type ProjectMemberRoleAssignmentResponse struct {
+	Role ProjectMemberRoleAssignment `json:"role"`
+}
+
+type ProjectMemberRoleAssignmentsResponse struct {
+	Member struct {
+		Roles []ProjectMemberRoleAssignment `json:"roles"`
+	} `json:"member"`
+}
+
 func getProjectMemberId(project string, memberType string, memberSlug string) string {
 	return strings.Join([]string{project, memberType, memberSlug}, ".")
 }
@@ -114,12 +130,61 @@ func parseProjectMemberId(id string) (project string, memberType string, memberS
 	return tokens[0], tokens[1], tokens[2], nil
 }
 
+func getProjectMemberRoleId(project string, memberType string, memberSlug string, role string) string {
+	return strings.Join([]string{project, memberType, memberSlug, role}, ".")
+}
+
+func parseProjectMemberRoleId(id string) (project string, memberType string, memberSlug string, role string, err error) {
+	tokens := strings.Split(id, ".")
+	if len(tokens) != 4 {
+		return "", "", "", "", errors.New("invalid project member role ID")
+	}
+	return tokens[0], tokens[1], tokens[2], tokens[3], nil
+}
+
+type IntegrationMemberRole struct {
+	Identifier string `json:"identifier"`
+}
+
+type IntegrationMember struct {
+	Type string                `json:"type"`
+	Slug string                `json:"slug"`
+	Role IntegrationMemberRole `json:"role"`
+}
+
+type IntegrationMemberResponse struct {
+	Member IntegrationMember `json:"member"`
+}
+
+func getIntegrationMemberId(integration string, memberType string, memberSlug string) string {
+	return strings.Join([]string{integration, memberType, memberSlug}, ".")
+}
+
+func parseIntegrationMemberId(id string) (integration string, memberType string, memberSlug string, err error) {
+	tokens := strings.Split(id, ".")
+	if len(tokens) != 3 {
+		return "", "", "", errors.New("invalid integration member ID")
+	}
+	return tokens[0], tokens[1], tokens[2], nil
+}
+
 type IntegrationData = map[string]interface{}
 
 type Integration struct {
-	Slug string `json:"slug"`
-	Name string `json:"name"`
-	Type string `json:"type"`
+	Slug       string           `json:"slug"`
+	Name       string           `json:"name"`
+	Type       string           `json:"type"`
+	Federation *FederationSetup `json:"federation"`
+}
+
+// FederationSetup is the keyless-federation identity a customer grants in their cloud to
+// authorize a connection. Kind "gcp" sets principal; kind "azure" sets issuer/subject/audience.
+type FederationSetup struct {
+	Kind      string `json:"kind"`
+	Principal string `json:"principal"`
+	Issuer    string `json:"issuer"`
+	Subject   string `json:"subject"`
+	Audience  string `json:"audience"`
 }
 
 type IntegrationResponse struct {
@@ -438,6 +503,33 @@ func parseGroupMemberId(id string) (group string, memberType string, memberSlug 
 	return tokens[0], tokens[1], tokens[2], nil
 }
 
+type Tag struct {
+	Slug      string `json:"slug"`
+	Name      string `json:"name"`
+	Color     string `json:"color"`
+	CreatedAt string `json:"created_at"`
+}
+
+type TagResponse struct {
+	Tag Tag `json:"tag"`
+}
+
+type TagsResponse struct {
+	Tags []Tag `json:"tags"`
+}
+
+func getProjectTagId(project string, tagSlug string) string {
+	return strings.Join([]string{project, tagSlug}, ".")
+}
+
+func parseProjectTagId(id string) (project string, tagSlug string, err error) {
+	tokens := strings.SplitN(id, ".", 2)
+	if len(tokens) != 2 {
+		return "", "", errors.New("invalid project tag ID")
+	}
+	return tokens[0], tokens[1], nil
+}
+
 type ChangeRequestPolicySubject struct {
 	Type string `json:"type"`
 	Slug string `json:"slug"`
@@ -485,4 +577,20 @@ type CreateWorkplaceRoleResponse struct {
 
 type UpdateWorkplaceRoleResponse struct {
 	Role WorkplaceRole `json:"role"`
+}
+
+type TrustedIPsResponse struct {
+	IPs []string `json:"ips"`
+}
+
+func getTrustedIPsResourceId(project, config string) string {
+	return strings.Join([]string{project, config}, ".")
+}
+
+func parseTrustedIPsResourceId(id string) (project string, config string, err error) {
+	tokens := strings.Split(id, ".")
+	if len(tokens) != 2 {
+		return "", "", errors.New("invalid trusted IPs resource ID")
+	}
+	return tokens[0], tokens[1], nil
 }

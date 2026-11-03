@@ -1,0 +1,31 @@
+---
+page_title: "doppler_project_member_group_role_assignment Resource - terraform-provider-doppler"
+subcategory: "Project Structure"
+description: |-
+	Manage a single role assignment for a Doppler project group member.
+---
+
+# doppler_project_member_group_role_assignment (Resource)
+
+Manage a single role assignment for a Doppler project group member.
+
+**Note:** You can also exclusively manage a member's access to a project with a single role.
+See the `doppler_project_member_group` resource for more information.
+
+**Note:** Destroying the last role assignment a member holds on a project removes the member from the project.
+
+## Example Usage
+
+{{tffile "examples/resources/project_member_group_role_assignment.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+# import using the group slug from the URL:
+# https://dashboard.doppler.com/workplace/[workplace-slug]/team/groups/[group-slug]
+terraform import doppler_project_member_group_role_assignment.default <project-name>.group.<group-slug>.<role-identifier>
+```

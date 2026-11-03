@@ -2,9 +2,14 @@ package doppler
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 const defaultAPIHost = "https://api.doppler.com"
@@ -25,18 +30,41 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_VERIFY_TLS", true),
 			},
 			"doppler_token": {
-				Description: "A Doppler token, either a personal or service token. This can also be set via the DOPPLER_TOKEN environment variable.",
+				Description: "A Doppler token, either a personal or service token. This can also be set via the DOPPLER_TOKEN environment variable. Only one of `doppler_token` or OIDC authentication (`oidc_identity` + `oidc_token`/`oidc_token_file`) may be specified.",
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_TOKEN", nil),
+			},
+			"oidc_identity": {
+				Description:  "The identity ID (UUID) of the Doppler service account identity for OIDC authentication. This can also be set via the DOPPLER_OIDC_IDENTITY environment variable.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				DefaultFunc:  schema.EnvDefaultFunc("DOPPLER_OIDC_IDENTITY", nil),
+				ValidateFunc: validation.IsUUID,
+			},
+			"oidc_token": {
+				Description:  "A JWT token to use for OIDC authentication. Only one of `oidc_token` or `oidc_token_file` may be set. This can also be set via the DOPPLER_OIDC_TOKEN environment variable.",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				DefaultFunc:  schema.EnvDefaultFunc("DOPPLER_OIDC_TOKEN", nil),
+				ValidateFunc: validateJWTShape,
+			},
+			"oidc_token_file": {
+				Description: "A path to a file containing a JWT token for OIDC authentication (e.g. a Kubernetes projected service account token). Only one of `oidc_token` or `oidc_token_file` may be set. This can also be set via the DOPPLER_OIDC_TOKEN_FILE environment variable.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("DOPPLER_OIDC_TOKEN_FILE", nil),
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"doppler_secret":        resourceSecret(),
+			"doppler_secret_note":   resourceSecretNote(),
 			"doppler_project":       resourceProject(),
 			"doppler_environment":   resourceEnvironment(),
 			"doppler_config":        resourceConfig(),
 			"doppler_service_token": resourceServiceToken(),
+			"doppler_trusted_ips":   resourceTrustedIPs(),
 
 			"doppler_project_role": resourceProjectRole(),
 
@@ -50,13 +78,23 @@ func Provider() *schema.Provider {
 			"doppler_group_member":  resourceGroupMemberWorkplaceUser(),
 			"doppler_group_members": resourceGroupMembers(),
 
+			"doppler_tag":         resourceTag(),
+			"doppler_project_tag": resourceProjectTag(),
+
 			"doppler_webhook": resourceWebhook(),
 
 			"doppler_change_request_policy": resourceChangeRequestPolicy(),
 
-			"doppler_project_member_group":           resourceProjectMemberGroup(),
-			"doppler_project_member_service_account": resourceProjectMemberServiceAccount(),
-			"doppler_project_member_user":            resourceProjectMemberUser(),
+			"doppler_project_member_group":                           resourceProjectMemberGroup(),
+			"doppler_project_member_service_account":                 resourceProjectMemberServiceAccount(),
+			"doppler_project_member_user":                            resourceProjectMemberUser(),
+			"doppler_project_member_group_role_assignment":           resourceProjectMemberGroupRoleAssignment(),
+			"doppler_project_member_service_account_role_assignment": resourceProjectMemberServiceAccountRoleAssignment(),
+			"doppler_project_member_user_role_assignment":            resourceProjectMemberUserRoleAssignment(),
+
+			"doppler_integration_member_group":           resourceIntegrationMemberGroup(),
+			"doppler_integration_member_service_account": resourceIntegrationMemberServiceAccount(),
+			"doppler_integration_member_user":            resourceIntegrationMemberUser(),
 
 			"doppler_integration_aws_secrets_manager":  resourceIntegrationAWSAssumeRoleIntegration("aws_secrets_manager"),
 			"doppler_secrets_sync_aws_secrets_manager": resourceSyncAWSSecretsManager(),
@@ -73,6 +111,7 @@ func Provider() *schema.Provider {
 			// creating integrations is not currently supported for GitHub syncs
 			// "doppler_integration_github":  resourceIntegrationGitHub(),
 			"doppler_secrets_sync_github_actions":    resourceSyncGitHubActions(),
+			"doppler_secrets_sync_github_agents":     resourceSyncGitHubAgents(),
 			"doppler_secrets_sync_github_codespaces": resourceSyncGitHubCodespaces(),
 			"doppler_secrets_sync_github_dependabot": resourceSyncGitHubDependabot(),
 
@@ -82,6 +121,7 @@ func Provider() *schema.Provider {
 			"doppler_integration_twilio":                   resourceIntegrationTwilio(),
 			"doppler_integration_cloudflare_tokens":        resourceIntegrationCloudflareTokens(),
 			"doppler_integration_mongodb_atlas":            resourceIntegrationMongoDBAtlas(),
+			"doppler_integration_openai":                   resourceIntegrationOpenAI(),
 			"doppler_integration_sendgrid":                 resourceIntegrationSendGrid(),
 			"doppler_integration_gcp_service_account_keys": resourceIntegrationGCPServiceAccountKeys(),
 			"doppler_integration_gcp_cloudsql_mysql":       resourceIntegrationGCPCloudSQLMySQL(),
@@ -97,6 +137,7 @@ func Provider() *schema.Provider {
 			"doppler_rotated_secret_twilio":                   resourceRotatedSecretTwilio(),
 			"doppler_rotated_secret_cloudflare_tokens":        resourceRotatedSecretCloudflareTokens(),
 			"doppler_rotated_secret_mongodb_atlas":            resourceRotatedSecretMongoDBAtlas(),
+			"doppler_rotated_secret_openai":                   resourceRotatedSecretOpenAI(),
 			"doppler_rotated_secret_sendgrid":                 resourceRotatedSecretSendGrid(),
 			"doppler_rotated_secret_gcp_cloudsql":             resourceRotatedSecretGCPCloudSQL(),
 			"doppler_rotated_secret_aws_iam_user_keys":        resourceRotatedSecretAWSIAMUserKeys(),
@@ -110,8 +151,18 @@ func Provider() *schema.Provider {
 			"doppler_integration_azure_vault_service_principal": resourceIntegrationAzureVaultServicePrincipal(),
 			"doppler_secrets_sync_azure_vault":                  resourceSyncAzureVault(),
 
+			"doppler_integration_azure_rotated_service_principal":      resourceIntegrationAzureServicePrincipal("azure_rotated_service_principal"),
+			"doppler_integration_azure_rotated_service_principal_oidc": resourceIntegrationAzureServicePrincipalOIDC("azure_rotated_service_principal"),
+			"doppler_integration_azure_dynamic_service_principal":      resourceIntegrationAzureServicePrincipal("azure_dynamic_service_principal"),
+			"doppler_integration_azure_dynamic_service_principal_oidc": resourceIntegrationAzureServicePrincipalOIDC("azure_dynamic_service_principal"),
+
 			"doppler_integration_gcp_secret_manager":  resourceIntegrationGCPSecretManager(),
 			"doppler_secrets_sync_gcp_secret_manager": resourceSyncGCPSecretManager(),
+
+			"doppler_integration_gcp_secret_manager_oidc":     resourceIntegrationGCPSecretManagerOIDC(),
+			"doppler_integration_gcp_cloudsql_mysql_oidc":     resourceIntegrationGCPCloudSQLOIDC("gcp_cloudsql_mysql"),
+			"doppler_integration_gcp_cloudsql_postgres_oidc":  resourceIntegrationGCPCloudSQLOIDC("gcp_cloudsql_postgres"),
+			"doppler_integration_gcp_cloudsql_sqlserver_oidc": resourceIntegrationGCPCloudSQLOIDC("gcp_cloudsql_sqlserver"),
 
 			// creating Vercel oauth integrations is not currently supported
 			// "doppler_integration_vercel":  resourceIntegrationVercel(),
@@ -136,7 +187,131 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 	verifyTLS := d.Get("verify_tls").(bool)
 	token := d.Get("doppler_token").(string)
 
+	oidcIdentity := d.Get("oidc_identity").(string)
+	oidcToken := d.Get("oidc_token").(string)
+	oidcTokenFile := d.Get("oidc_token_file").(string)
+
 	var diags diag.Diagnostics
+
+	hasToken := token != ""
+	hasOIDC := oidcIdentity != "" || oidcToken != "" || oidcTokenFile != ""
+
+	if hasToken && hasOIDC {
+		return nil, diag.Diagnostics{
+			diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Conflicting authentication configuration",
+				Detail:   "Only one of `doppler_token` or OIDC authentication (`oidc_identity` + `oidc_token`/`oidc_token_file`) may be specified.",
+			},
+		}
+	}
+
+	if !hasToken && !hasOIDC {
+		return nil, diag.Diagnostics{
+			diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Missing authentication configuration",
+				Detail:   "Either `doppler_token` or OIDC authentication (`oidc_identity` + `oidc_token`/`oidc_token_file`) must be specified.",
+			},
+		}
+	}
+
+	if hasOIDC {
+		if oidcIdentity == "" {
+			return nil, diag.Diagnostics{
+				diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Missing OIDC identity",
+					Detail:   "`oidc_identity` must be specified when using OIDC authentication.",
+				},
+			}
+		}
+
+		if oidcToken != "" && oidcTokenFile != "" {
+			return nil, diag.Diagnostics{
+				diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Conflicting OIDC token configuration",
+					Detail:   "Only one of `oidc_token` or `oidc_token_file` may be specified, not both.",
+				},
+			}
+		}
+
+		if oidcToken == "" && oidcTokenFile == "" {
+			return nil, diag.Diagnostics{
+				diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Missing OIDC token",
+					Detail:   "One of `oidc_token` or `oidc_token_file` must be specified when using OIDC authentication.",
+				},
+			}
+		}
+
+		if !verifyTLS {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "TLS verification disabled for OIDC authentication",
+				Detail:   "verify_tls is false. TLS certificate validation is disabled for the OIDC token exchange. This should never be used in production.",
+			})
+		}
+
+		if !strings.HasPrefix(strings.ToLower(host), "https://") {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  "Non-HTTPS host configured with OIDC authentication",
+				Detail:   "The configured host does not use HTTPS. OIDC JWTs will be transmitted without transport encryption.",
+			})
+		}
+
+		jwt := oidcToken
+		if oidcTokenFile != "" {
+			if !filepath.IsAbs(oidcTokenFile) {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Invalid OIDC token file path",
+					Detail:   "`oidc_token_file` must be an absolute path.",
+				})
+				return nil, diags
+			}
+			contents, err := os.ReadFile(oidcTokenFile)
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Unable to read OIDC token file",
+					Detail:   fmt.Sprintf("Failed to read OIDC token from file %q. Verify the file exists and is readable by the Terraform process.", oidcTokenFile),
+				})
+				return nil, diags
+			}
+			jwt = strings.TrimSpace(string(contents))
+			if jwt == "" {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Empty OIDC token file",
+					Detail:   fmt.Sprintf("OIDC token file %q exists but is empty.", oidcTokenFile),
+				})
+				return nil, diags
+			}
+			if !isJWTShaped(jwt) {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "Invalid OIDC token format",
+					Detail:   fmt.Sprintf("OIDC token file %q does not contain a well-formed JWT (expected three dot-separated parts).", oidcTokenFile),
+				})
+				return nil, diags
+			}
+		}
+
+		apiToken, err := exchangeOIDCToken(ctx, host, oidcIdentity, jwt, verifyTLS)
+		if err != nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "OIDC token exchange failed",
+				Detail:   fmt.Sprintf("Failed to exchange OIDC token with Doppler: %s", err),
+			})
+			return nil, diags
+		}
+		token = apiToken
+	}
 
 	return APIClient{Host: host, APIKey: token, VerifyTLS: verifyTLS}, diags
 }

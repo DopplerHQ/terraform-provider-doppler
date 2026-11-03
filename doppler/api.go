@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -69,6 +68,24 @@ func getSecondsDuration(seconds int) *time.Duration {
 	return &duration
 }
 
+// httpClientWithTLSConfig builds the HTTP client used for all Doppler API calls, with a
+// shared TLS policy (minimum TLS 1.2, optional verification skip) and timeout.
+func httpClientWithTLSConfig(verifyTLS bool) *http.Client {
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+	if !verifyTLS {
+		tlsConfig.InsecureSkipVerify = true
+	}
+	return &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+			TLSClientConfig:   tlsConfig,
+		},
+	}
+}
+
 func (client APIClient) PerformRequestWithRetry(ctx context.Context, method string, path string, params []QueryParam, body []byte) (*APIResponse, error) {
 	var lastErr error
 	for i := 0; i < MAX_RETRIES; i++ {
@@ -97,7 +114,7 @@ func (client APIClient) PerformRequestWithRetry(ctx context.Context, method stri
 }
 
 func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (*APIResponse, error) {
-	httpClient := &http.Client{Timeout: 30 * time.Second}
+	httpClient := httpClientWithTLSConfig(client.VerifyTLS)
 
 	userAgent := fmt.Sprintf("terraform-provider-doppler/%s", ProviderVersion)
 	req.Header.Set("user-agent", userAgent)
@@ -112,19 +129,6 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 		query.Add(param.Key, param.Value)
 	}
 	req.URL.RawQuery = query.Encode()
-
-	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
-
-	if !client.VerifyTLS {
-		tlsConfig.InsecureSkipVerify = true
-	}
-
-	httpClient.Transport = &http.Transport{
-		DisableKeepAlives: true,
-		TLSClientConfig:   tlsConfig,
-	}
 
 	r, err := httpClient.Do(req)
 	if err != nil {
@@ -141,7 +145,7 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 		_ = r.Body.Close()
 	}()
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	response := &APIResponse{HTTPResponse: r, Body: body}
 	if err != nil {
 		return response, &APIError{Err: err, Message: "Unable to load response data", Response: response}
@@ -258,6 +262,55 @@ func (client APIClient) UpdateSecrets(ctx context.Context, project string, confi
 		return err
 	}
 	return nil
+}
+
+// Secret notes
+
+func (client APIClient) SetSecretNote(ctx context.Context, project string, secretName string, note string) error {
+	payload := map[string]interface{}{
+		"secret": secretName,
+		"note":   note,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return &APIError{Err: err, Message: "Unable to serialize secret note"}
+	}
+	params := []QueryParam{{Key: "project", Value: project}}
+	_, err = client.PerformRequestWithRetry(ctx, "POST", "/v3/projects/project/note", params, body)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetSecretNote returns the note string for a (project, secretName) pair.
+// Notes are project-scoped but the Doppler API only exposes the field via
+// per-config secret reads, so this iterates root configs (one per environment)
+// until it finds a config where the secret exists. Per-env not-found errors
+// are tolerated (the secret may not exist in every env); any other error
+// returns immediately so transient 5xx or auth failures aren't masked.
+func (client APIClient) GetSecretNote(ctx context.Context, project string, secretName string) (string, error) {
+	envs, err := client.ListEnvironments(ctx, project)
+	if err != nil {
+		return "", err
+	}
+	if len(envs) == 0 {
+		return "", &CustomNotFoundError{Message: "Project has no environments"}
+	}
+	for _, env := range envs {
+		secret, err := client.GetSecret(ctx, project, env.Slug, secretName)
+		if err != nil {
+			if _, ok := err.(*CustomNotFoundError); ok {
+				continue
+			}
+			return "", err
+		}
+		if secret.Value.Note != nil {
+			return *secret.Value.Note, nil
+		}
+		return "", nil
+	}
+	return "", &CustomNotFoundError{Message: "Secret not found in any environment"}
 }
 
 // Projects
@@ -472,6 +525,158 @@ func (client APIClient) DeleteProjectMember(ctx context.Context, project string,
 		{Key: "project", Value: project},
 	}
 	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/projects/project/members/member/%s/%s", url.QueryEscape(memberType), url.QueryEscape(memberSlug)), params, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Project Member Roles
+func (client APIClient) CreateProjectMemberRole(ctx context.Context, project string, memberType string, memberSlug string, role string, environments []string) (*ProjectMemberRoleAssignment, error) {
+	if environments == nil {
+		environments = []string{}
+	}
+	payload := map[string]interface{}{
+		"project":      project,
+		"role":         role,
+		"environments": environments,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize project member role"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", fmt.Sprintf("/v3/projects/project/members/member/%s/%s/roles", url.PathEscape(memberType), url.PathEscape(memberSlug)), []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	return findProjectMemberRoleAssignment(response.Body, role)
+}
+
+func (client APIClient) GetProjectMemberRole(ctx context.Context, project string, memberType string, memberSlug string, role string) (*ProjectMemberRoleAssignment, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/projects/project/members/member/%s/%s/roles/role/%s", url.PathEscape(memberType), url.PathEscape(memberSlug), url.PathEscape(role)), params, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result ProjectMemberRoleAssignmentResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse project member role"}
+	}
+	return &result.Role, nil
+}
+
+func (client APIClient) UpdateProjectMemberRole(ctx context.Context, project string, memberType string, memberSlug string, role string, environments []string) (*ProjectMemberRoleAssignment, error) {
+	if environments == nil {
+		environments = []string{}
+	}
+	payload := map[string]interface{}{
+		"project":      project,
+		"environments": environments,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize project member role update"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "PATCH", fmt.Sprintf("/v3/projects/project/members/member/%s/%s/roles/role/%s", url.PathEscape(memberType), url.PathEscape(memberSlug), url.PathEscape(role)), []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	return findProjectMemberRoleAssignment(response.Body, role)
+}
+
+func findProjectMemberRoleAssignment(body []byte, role string) (*ProjectMemberRoleAssignment, error) {
+	var result ProjectMemberRoleAssignmentsResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse project member roles"}
+	}
+	for _, assignment := range result.Member.Roles {
+		if assignment.Role.Identifier == role {
+			return &assignment, nil
+		}
+	}
+	return nil, &CustomNotFoundError{Message: "Project member role not found in response"}
+}
+
+func (client APIClient) DeleteProjectMemberRole(ctx context.Context, project string, memberType string, memberSlug string, role string) error {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/projects/project/members/member/%s/%s/roles/role/%s", url.PathEscape(memberType), url.PathEscape(memberSlug), url.PathEscape(role)), params, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Integration Members
+func (client APIClient) CreateIntegrationMember(ctx context.Context, integration string, memberType string, memberSlug string, role string) (*IntegrationMember, error) {
+	params := []QueryParam{
+		{Key: "integration", Value: integration},
+	}
+	payload := map[string]interface{}{
+		"slug": memberSlug,
+		"type": memberType,
+		"role": role,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize integration member"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/integrations/integration/members", params, body)
+	if err != nil {
+		return nil, err
+	}
+	var result IntegrationMemberResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse integration member"}
+	}
+	return &result.Member, nil
+}
+
+func (client APIClient) GetIntegrationMember(ctx context.Context, integration string, memberType string, memberSlug string) (*IntegrationMember, error) {
+	params := []QueryParam{
+		{Key: "integration", Value: integration},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/integrations/integration/members/member/%s/%s", url.QueryEscape(memberType), url.QueryEscape(memberSlug)), params, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result IntegrationMemberResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse integration member"}
+	}
+	return &result.Member, nil
+}
+
+func (client APIClient) UpdateIntegrationMember(ctx context.Context, integration string, memberType string, memberSlug string, role string) (*IntegrationMember, error) {
+	params := []QueryParam{
+		{Key: "integration", Value: integration},
+	}
+	payload := map[string]interface{}{
+		"role": role,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize integration member update"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "PATCH", fmt.Sprintf("/v3/integrations/integration/members/member/%s/%s", url.QueryEscape(memberType), url.QueryEscape(memberSlug)), params, body)
+	if err != nil {
+		return nil, err
+	}
+	var result IntegrationMemberResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse integration member"}
+	}
+	return &result.Member, nil
+}
+
+func (client APIClient) DeleteIntegrationMember(ctx context.Context, integration string, memberType string, memberSlug string) error {
+	params := []QueryParam{
+		{Key: "integration", Value: integration},
+	}
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/integrations/integration/members/member/%s/%s", url.QueryEscape(memberType), url.QueryEscape(memberSlug)), params, nil)
 	if err != nil {
 		return err
 	}
@@ -1478,6 +1683,122 @@ func (client APIClient) ReplaceGroupMembers(ctx context.Context, group string, m
 	return nil
 }
 
+// Tags
+
+func (client APIClient) GetTag(ctx context.Context, slug string) (*Tag, error) {
+	response, err := client.PerformRequestWithRetry(ctx, "GET", fmt.Sprintf("/v3/workplace/tags/tag/%s", url.QueryEscape(slug)), []QueryParam{}, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result TagResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse tag"}
+	}
+	return &result.Tag, nil
+}
+
+func (client APIClient) CreateTag(ctx context.Context, name string, color string, slug string) (*Tag, error) {
+	payload := map[string]interface{}{
+		"name":  name,
+		"color": color,
+	}
+	if slug != "" {
+		payload["slug"] = slug
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize tag"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "POST", "/v3/workplace/tags", []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result TagResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse tag"}
+	}
+	return &result.Tag, nil
+}
+
+func (client APIClient) UpdateTag(ctx context.Context, slug string, name string, color string) (*Tag, error) {
+	payload := map[string]interface{}{
+		"name":  name,
+		"color": color,
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to serialize tag"}
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "PATCH", fmt.Sprintf("/v3/workplace/tags/tag/%s", url.QueryEscape(slug)), []QueryParam{}, body)
+	if err != nil {
+		return nil, err
+	}
+	var result TagResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse tag"}
+	}
+	return &result.Tag, nil
+}
+
+func (client APIClient) DeleteTag(ctx context.Context, slug string) error {
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/workplace/tags/tag/%s", url.QueryEscape(slug)), []QueryParam{}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Project Tags
+
+func (client APIClient) GetProjectTag(ctx context.Context, project string, tagSlug string) error {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", "/v3/projects/project/tags", params, nil)
+	if err != nil {
+		return err
+	}
+	var result TagsResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return &APIError{Err: err, Message: "Unable to parse project tags"}
+	}
+	for _, tag := range result.Tags {
+		if tag.Slug == tagSlug {
+			return nil
+		}
+	}
+	return &CustomNotFoundError{Message: "Could not find requested project tag"}
+}
+
+func (client APIClient) CreateProjectTag(ctx context.Context, project string, tagSlug string) error {
+	payload := map[string]interface{}{
+		"project": project,
+		"tag":     tagSlug,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return &APIError{Err: err, Message: "Unable to serialize project tag"}
+	}
+	_, err = client.PerformRequestWithRetry(ctx, "POST", "/v3/projects/project/tags", []QueryParam{}, body)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (client APIClient) DeleteProjectTag(ctx context.Context, project string, tagSlug string) error {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+	}
+	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/projects/project/tags/tag/%s", url.QueryEscape(tagSlug)), params, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Workplace Users
 
 func (client APIClient) GetWorkplaceUser(ctx context.Context, email string) (*WorkplaceUser, error) {
@@ -1616,6 +1937,129 @@ func (client APIClient) UpdateWorkplaceRole(ctx context.Context, identifier stri
 func (client APIClient) DeleteWorkplaceRole(ctx context.Context, identifier string) error {
 	_, err := client.PerformRequestWithRetry(ctx, "DELETE", fmt.Sprintf("/v3/workplace/roles/role/%s", url.PathEscape(identifier)), []QueryParam{}, nil)
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// OIDC Authentication
+
+type oidcAuthRequest struct {
+	Identity string `json:"identity"`
+	Token    string `json:"token"`
+}
+
+type oidcAuthResponse struct {
+	Token string `json:"token"`
+}
+
+const maxOIDCResponseBytes = 1 << 20 // 1MB
+
+func exchangeOIDCToken(ctx context.Context, host string, identity string, jwt string, verifyTLS bool) (string, error) {
+	payload := oidcAuthRequest{
+		Identity: identity,
+		Token:    jwt,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("unable to serialize OIDC auth request: %w", err)
+	}
+
+	requestUrl := fmt.Sprintf("%s/v3/auth/oidc", host)
+	req, err := http.NewRequestWithContext(ctx, "POST", requestUrl, bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("unable to create OIDC auth request: %w", err)
+	}
+
+	userAgent := fmt.Sprintf("terraform-provider-doppler/%s", ProviderVersion)
+	req.Header.Set("user-agent", userAgent)
+	req.Header.Set("accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+
+	httpClient := httpClientWithTLSConfig(verifyTLS)
+
+	r, err := httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("OIDC auth request failed: %w", err)
+	}
+	defer r.Body.Close()
+
+	responseBody, err := io.ReadAll(io.LimitReader(r.Body, maxOIDCResponseBytes))
+	if err != nil {
+		return "", fmt.Errorf("unable to read OIDC auth response: %w", err)
+	}
+
+	if !isSuccess(r.StatusCode) {
+		var errResponse ErrorResponse
+		if jsonErr := json.Unmarshal(responseBody, &errResponse); jsonErr == nil && len(errResponse.Messages) > 0 {
+			return "", fmt.Errorf("OIDC auth failed (HTTP %d): %s", r.StatusCode, strings.Join(errResponse.Messages, "; "))
+		}
+		return "", fmt.Errorf("OIDC auth failed with HTTP %d", r.StatusCode)
+	}
+
+	var result oidcAuthResponse
+	if err := json.Unmarshal(responseBody, &result); err != nil {
+		return "", fmt.Errorf("unable to parse OIDC auth response: %w", err)
+	}
+
+	if result.Token == "" {
+		return "", fmt.Errorf("OIDC auth response did not contain a token")
+	}
+
+	return result.Token, nil
+}
+
+// Trusted IPs
+
+func (client APIClient) GetTrustedIPs(ctx context.Context, project, config string) ([]string, error) {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+		{Key: "config", Value: config},
+	}
+	response, err := client.PerformRequestWithRetry(ctx, "GET", "/v3/configs/config/trusted_ips", params, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result TrustedIPsResponse
+	if err = json.Unmarshal(response.Body, &result); err != nil {
+		return nil, &APIError{Err: err, Message: "Unable to parse trusted IPs"}
+	}
+	return result.IPs, nil
+}
+
+func (client APIClient) AddTrustedIP(ctx context.Context, project, config, ip string) error {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+		{Key: "config", Value: config},
+	}
+	payload := map[string]interface{}{
+		"ip": ip,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return &APIError{Err: err, Message: "Unable to serialize trusted IP"}
+	}
+	_, err = client.PerformRequestWithRetry(ctx, "POST", "/v3/configs/config/trusted_ips", params, body)
+	return err
+}
+
+func (client APIClient) DeleteTrustedIP(ctx context.Context, project, config, ip string) error {
+	params := []QueryParam{
+		{Key: "project", Value: project},
+		{Key: "config", Value: config},
+	}
+	payload := map[string]interface{}{
+		"ip": ip,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return &APIError{Err: err, Message: "Unable to serialize trusted IP"}
+	}
+	_, err = client.PerformRequestWithRetry(ctx, "DELETE", "/v3/configs/config/trusted_ips", params, body)
+	if err != nil {
+		if apiError, ok := err.(*APIError); ok && apiError.Response != nil && apiError.Response.HTTPResponse.StatusCode == 404 {
+			return nil
+		}
 		return err
 	}
 	return nil
