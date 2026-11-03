@@ -9,10 +9,12 @@ import (
 )
 
 type SyncDataBuilderFunc = func(d *schema.ResourceData) SyncData
+type SyncDataReaderFunc = func(data map[string]interface{}, d *schema.ResourceData) error
 
 type ResourceSyncBuilder struct {
 	DataSchema    map[string]*schema.Schema
 	DataBuilder   IntegrationDataBuilderFunc
+	DataReader    SyncDataReaderFunc
 	CustomizeDiff schema.CustomizeDiffFunc
 }
 
@@ -107,6 +109,12 @@ func (builder ResourceSyncBuilder) ReadContextFunc() schema.ReadContextFunc {
 
 		if err = d.Set("config", sync.Config); err != nil {
 			return diag.FromErr(err)
+		}
+
+		if builder.DataReader != nil && sync.Data != nil {
+			if err = builder.DataReader(sync.Data, d); err != nil {
+				return diag.FromErr(err)
+			}
 		}
 
 		return diags
