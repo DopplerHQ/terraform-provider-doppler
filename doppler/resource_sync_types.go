@@ -632,7 +632,7 @@ func resourceSyncVercel() *schema.Resource {
 	builder := ResourceSyncBuilder{
 		DataSchema: map[string]*schema.Schema{
 			"team_id": {
-				Description: "The Vercel team ID",
+				Description: "The Vercel team ID. Defaults to \"personal\" for a personal account when omitted.",
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
@@ -650,7 +650,7 @@ func resourceSyncVercel() *schema.Resource {
 				ForceNew:    true,
 			},
 			"variable_type": {
-				Description:  "The Vercel variable type (\"config\", \"secret\", or \"dynamic\"). The legacy values \"encrypted\" and \"sensitive\" are also accepted.",
+				Description:  "The Vercel variable type (\"config\", \"secret\", or \"dynamic\"). The legacy values \"encrypted\" and \"sensitive\" are also accepted. Defaults to \"encrypted\" when omitted.",
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
@@ -668,8 +668,10 @@ func resourceSyncVercel() *schema.Resource {
 		},
 		DataBuilder: func(d *schema.ResourceData) IntegrationData {
 			payload := map[string]interface{}{
-				"project_id": d.Get("project_id"),
-				"target_id":  d.Get("target_id"),
+				"project_id":    d.Get("project_id"),
+				"target_id":     d.Get("target_id"),
+				"team_id":       "personal",
+				"variable_type": "encrypted",
 			}
 			if teamID, ok := d.GetOk("team_id"); ok {
 				payload["team_id"] = teamID
