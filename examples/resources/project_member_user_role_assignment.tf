@@ -13,5 +13,6 @@ resource "doppler_project_member_user_role_assignment" "backend_brian_collaborat
   project      = "backend"
   user_slug    = data.doppler_user.brian.slug
   role         = "collaborator"
-  environments = ["prd"]
+  environments = ["stg"]
+  configs      = ["prd_hotfix"]
 }
