@@ -106,6 +106,7 @@ type ProjectMemberResponse struct {
 type ProjectMemberRoleAssignment struct {
 	Role         ProjectMemberRole `json:"role"`
 	Environments []string          `json:"environments,omitempty"`
+	Configs      []string          `json:"configs,omitempty"`
 }
 
 type ProjectMemberRoleAssignmentResponse struct {

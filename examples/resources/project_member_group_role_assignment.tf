@@ -13,5 +13,6 @@ resource "doppler_project_member_group_role_assignment" "backend_engineering_col
   project      = "backend"
   group_slug   = data.doppler_group.engineering.slug
   role         = "collaborator"
-  environments = ["prd"]
+  environments = ["stg"]
+  configs      = ["prd_hotfix"]
 }

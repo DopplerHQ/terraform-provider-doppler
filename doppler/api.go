@@ -532,14 +532,18 @@ func (client APIClient) DeleteProjectMember(ctx context.Context, project string,
 }
 
 // Project Member Roles
-func (client APIClient) CreateProjectMemberRole(ctx context.Context, project string, memberType string, memberSlug string, role string, environments []string) (*ProjectMemberRoleAssignment, error) {
+func (client APIClient) CreateProjectMemberRole(ctx context.Context, project string, memberType string, memberSlug string, role string, environments []string, configs []string) (*ProjectMemberRoleAssignment, error) {
 	if environments == nil {
 		environments = []string{}
+	}
+	if configs == nil {
+		configs = []string{}
 	}
 	payload := map[string]interface{}{
 		"project":      project,
 		"role":         role,
 		"environments": environments,
+		"configs":      configs,
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -567,13 +571,17 @@ func (client APIClient) GetProjectMemberRole(ctx context.Context, project string
 	return &result.Role, nil
 }
 
-func (client APIClient) UpdateProjectMemberRole(ctx context.Context, project string, memberType string, memberSlug string, role string, environments []string) (*ProjectMemberRoleAssignment, error) {
+func (client APIClient) UpdateProjectMemberRole(ctx context.Context, project string, memberType string, memberSlug string, role string, environments []string, configs []string) (*ProjectMemberRoleAssignment, error) {
 	if environments == nil {
 		environments = []string{}
+	}
+	if configs == nil {
+		configs = []string{}
 	}
 	payload := map[string]interface{}{
 		"project":      project,
 		"environments": environments,
+		"configs":      configs,
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
