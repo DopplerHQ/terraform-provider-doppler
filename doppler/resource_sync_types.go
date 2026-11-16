@@ -365,6 +365,62 @@ func resourceSyncGitHubActions() *schema.Resource {
 	return builder.Build()
 }
 
+func resourceSyncGitHubAgents() *schema.Resource {
+	builder := ResourceSyncBuilder{
+		DataSchema: map[string]*schema.Schema{
+			"sync_target": {
+				Description:  "Either \"repo\" or \"org\", based on the resource type to sync to",
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validation.StringInSlice([]string{"repo", "org"}, false),
+			},
+			"repo_name": {
+				Description:  "The GitHub repo name to sync to (only used when `sync_target` is set to \"repo\")",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ExactlyOneOf: []string{"repo_name", "org_scope"},
+			},
+			"org_scope": {
+				Description:  "Either \"all\" or \"private\", based on the which repos you want to have access (only used when `sync_target` is set to \"org\")",
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ExactlyOneOf: []string{"repo_name", "org_scope"},
+				ValidateFunc: validation.StringInSlice([]string{"all", "private"}, false),
+			},
+			"sync_unmasked_as_variables": {
+				Description: "When enabled, causes secrets with the `unmasked` visibility type to get synced as GitHub Copilot Agents Variables. Defaults to `false`.",
+				Type:        schema.TypeBool,
+				Default:     false,
+				Optional:    true,
+				ForceNew:    true,
+			},
+		},
+		DataBuilder: func(d *schema.ResourceData) IntegrationData {
+			payload := map[string]interface{}{
+				"feature":     "agents",
+				"sync_target": d.Get("sync_target"),
+			}
+			repo_name := d.Get("repo_name")
+			if repo_name != "" {
+				payload["repo_name"] = repo_name
+			}
+			org_scope := d.Get("org_scope")
+			if org_scope != "" {
+				payload["org_scope"] = org_scope
+			}
+			sync_unmasked_as_variables := d.Get("sync_unmasked_as_variables")
+			if sync_unmasked_as_variables != "" {
+				payload["sync_unmasked_as_variables"] = sync_unmasked_as_variables
+			}
+			return payload
+		},
+	}
+	return builder.Build()
+}
+
 func resourceSyncGitHubCodespaces() *schema.Resource {
 	builder := ResourceSyncBuilder{
 		DataSchema: map[string]*schema.Schema{

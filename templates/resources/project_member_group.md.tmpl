@@ -9,6 +9,10 @@ description: |-
 
 Manage a Doppler project group member.
 
+**Note:** The `doppler_project_member_group` resource will clear/replace all existing roles the member holds on the project.
+Combinations of `doppler_project_member_group` and `doppler_project_member_group_role_assignment` for the same member will produce inconsistent behavior.
+To give a member several roles, use `doppler_project_member_group_role_assignment` only.
+
 ## Example Usage
 
 {{tffile "examples/resources/project_member_group.tf"}}

@@ -2,6 +2,7 @@ package doppler
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -40,4 +41,22 @@ func handleNotFoundError(err error, d *schema.ResourceData) diag.Diagnostics {
 	}
 
 	return diag.FromErr(err)
+}
+
+func isJWTShaped(s string) bool {
+	return strings.Count(s, ".") == 2
+}
+
+func validateJWTShape(i interface{}, k string) ([]string, []error) {
+	v, ok := i.(string)
+	if !ok {
+		return nil, []error{fmt.Errorf("%q must be a string", k)}
+	}
+	if v == "" {
+		return nil, nil
+	}
+	if !isJWTShaped(v) {
+		return nil, []error{fmt.Errorf("%q must be a JWT with three dot-separated parts", k)}
+	}
+	return nil, nil
 }

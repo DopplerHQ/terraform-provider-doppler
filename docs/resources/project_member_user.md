@@ -9,6 +9,10 @@ description: |-
 
 Manage a Doppler project user member.
 
+**Note:** The `doppler_project_member_user` resource will clear/replace all existing roles the member holds on the project.
+Combinations of `doppler_project_member_user` and `doppler_project_member_user_role_assignment` for the same member will produce inconsistent behavior.
+To give a member several roles, use `doppler_project_member_user_role_assignment` only.
+
 ## Example Usage
 
 ```terraform
@@ -30,7 +34,7 @@ resource "doppler_project_member_user" "backend_brian" {
 ### Required
 
 - `project` (String) The name of the Doppler project where the access is applied
-- `role` (String) The project role identifier for the access. Must use either one of the built-in project role slugs (`admin`, `owner`, `collaborator`, or `no_access`), or the slug for a custom project role.
+- `role` (String) The project role identifier for the access. Must use either one of the built-in project role slugs (`admin`, `collaborator`, `viewer`, or `no_access`), or the slug for a custom project role.
 - `user_slug` (String) The slug of the Doppler workplace user
 
 ### Optional

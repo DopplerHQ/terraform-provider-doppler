@@ -31,7 +31,7 @@ func (builder ResourceProjectMemberBuilder) Build() *schema.Resource {
 			ForceNew: true,
 		},
 		"role": {
-			Description: "The project role identifier for the access. Must use either one of the built-in project role slugs (`admin`, `owner`, `collaborator`, or `no_access`), or the slug for a custom project role.",
+			Description: "The project role identifier for the access. Must use either one of the built-in project role slugs (`admin`, `collaborator`, `viewer`, or `no_access`), or the slug for a custom project role.",
 			Type:        schema.TypeString,
 			Required:    true,
 		},
