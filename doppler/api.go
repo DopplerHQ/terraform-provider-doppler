@@ -5,14 +5,19 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand/v2"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"strconv"
 	"strings"
+	"sync/atomic"
+	"syscall"
 	"time"
 )
 
@@ -64,25 +69,33 @@ func isSuccess(statusCode int) bool {
 	return (statusCode >= 200 && statusCode <= 299) || (statusCode >= 300 && statusCode <= 399)
 }
 
-func isTransientStatusCode(statusCode int) bool {
-	return statusCode == 502 || statusCode == 503 || statusCode == 504
+func isIdempotentMethod(method string) bool {
+	return method == http.MethodGet || method == http.MethodHead || method == http.MethodDelete
 }
 
-func isTransientError(err error) bool {
-	if err == nil {
-		return false
+func isTransientStatusCode(statusCode int) bool {
+	return statusCode == http.StatusBadGateway || statusCode == http.StatusServiceUnavailable || statusCode == http.StatusGatewayTimeout
+}
+
+func isConnectionDropped(err error) bool {
+	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, syscall.ECONNRESET)
+}
+
+func isRetryableNetworkError(err error, method string, requestWritten bool) bool {
+	if !requestWritten {
+		var opErr *net.OpError
+		return errors.As(err, &opErr) || isConnectionDropped(err)
 	}
-	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-		return true
-	}
-	errStr := err.Error()
-	return strings.Contains(errStr, "EOF") ||
-		strings.Contains(errStr, "connection reset") ||
-		strings.Contains(errStr, "connection refused")
+	return isIdempotentMethod(method) && isConnectionDropped(err)
 }
 
 func getSecondsDuration(seconds int) *time.Duration {
 	duration := time.Duration(seconds) * time.Second
+	return &duration
+}
+
+var getTransientRetryDelay = func() *time.Duration {
+	duration := 500*time.Millisecond + rand.N(time.Second)
 	return &duration
 }
 
@@ -143,11 +156,18 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 		TLSClientConfig:   tlsConfig,
 	}
 
+	var requestWritten atomic.Bool
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), &httptrace.ClientTrace{
+		WroteRequest: func(httptrace.WroteRequestInfo) { requestWritten.Store(true) },
+	}))
+
 	r, err := httpClient.Do(req)
 	if err != nil {
 		var retryAfter *time.Duration
-		if isTransientError(err) {
+		if e, ok := err.(net.Error); ok && e.Timeout() {
 			retryAfter = getSecondsDuration(1)
+		} else if req.Context().Err() == nil && isRetryableNetworkError(err, req.Method, requestWritten.Load()) {
+			retryAfter = getTransientRetryDelay()
 		}
 
 		return nil, &APIError{Err: err, Message: "Unable to load response", RetryAfter: retryAfter}
@@ -161,7 +181,11 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 	body, err := ioutil.ReadAll(r.Body)
 	response := &APIResponse{HTTPResponse: r, Body: body}
 	if err != nil {
-		return response, &APIError{Err: err, Message: "Unable to load response data", Response: response}
+		var retryAfter *time.Duration
+		if isIdempotentMethod(req.Method) && isConnectionDropped(err) {
+			retryAfter = getTransientRetryDelay()
+		}
+		return response, &APIError{Err: err, Message: "Unable to load response data", RetryAfter: retryAfter, Response: response}
 	}
 
 	if !isSuccess(r.StatusCode) {
@@ -200,8 +224,8 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 			}
 		}
 		var retryAfter *time.Duration
-		if isTransientStatusCode(r.StatusCode) {
-			retryAfter = getSecondsDuration(1)
+		if isIdempotentMethod(req.Method) && isTransientStatusCode(r.StatusCode) {
+			retryAfter = getTransientRetryDelay()
 		}
 		return nil, &APIError{Err: fmt.Errorf("%d status code; %d bytes", r.StatusCode, len(body)), Message: "Unable to load response", RetryAfter: retryAfter, Response: response}
 	}
