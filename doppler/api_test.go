@@ -17,13 +17,13 @@ import (
 )
 
 func stubTransientRetryDelay(t *testing.T, delay time.Duration) *atomic.Int32 {
-	original := getTransientRetryDelay
+	original := transientRetryDelay
 	var calls atomic.Int32
-	getTransientRetryDelay = func() *time.Duration {
+	transientRetryDelay = func(int) time.Duration {
 		calls.Add(1)
-		return &delay
+		return delay
 	}
-	t.Cleanup(func() { getTransientRetryDelay = original })
+	t.Cleanup(func() { transientRetryDelay = original })
 	return &calls
 }
 
@@ -304,7 +304,7 @@ func TestRetryDelay(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if _, retry := retryDelay(tt.ctx, tt.method, &tt.apiError); retry != tt.wantRetry {
+			if _, retry := retryDelay(tt.ctx, tt.method, &tt.apiError, 0); retry != tt.wantRetry {
 				t.Fatalf("retry = %v, want %v", retry, tt.wantRetry)
 			}
 		})
@@ -404,11 +404,18 @@ func TestPerformRequestWithRetry_GivesUpAfterMaxRetries(t *testing.T) {
 	}
 }
 
-func TestGetTransientRetryDelay(t *testing.T) {
-	for range 1000 {
-		delay := *getTransientRetryDelay()
-		if delay < 500*time.Millisecond || delay >= 1500*time.Millisecond {
-			t.Fatalf("delay = %v, want within [500ms, 1500ms)", delay)
+func TestTransientRetryDelay(t *testing.T) {
+	ranges := []struct{ min, max time.Duration }{
+		{500 * time.Millisecond, time.Second},
+		{time.Second, 2 * time.Second},
+		{2 * time.Second, 4 * time.Second},
+	}
+	for attempt := range MAX_RETRIES {
+		want := ranges[min(attempt, len(ranges)-1)]
+		for range 200 {
+			if delay := transientRetryDelay(attempt); delay < want.min || delay >= want.max {
+				t.Fatalf("attempt %d: delay = %v, want within [%v, %v)", attempt, delay, want.min, want.max)
+			}
 		}
 	}
 }

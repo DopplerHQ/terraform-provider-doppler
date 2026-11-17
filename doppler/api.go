@@ -124,12 +124,18 @@ func getSecondsDuration(seconds int) *time.Duration {
 	return &duration
 }
 
-var getTransientRetryDelay = func() *time.Duration {
-	duration := 500*time.Millisecond + rand.N(time.Second)
-	return &duration
+const (
+	transientRetryBaseDelay = time.Second
+	transientRetryMaxDelay  = 4 * time.Second
+)
+
+// Jitter keeps parallel requests that failed together from retrying in lockstep.
+var transientRetryDelay = func(attempt int) time.Duration {
+	ceiling := min(transientRetryMaxDelay, transientRetryBaseDelay<<attempt)
+	return ceiling/2 + rand.N(ceiling/2)
 }
 
-func retryDelay(ctx context.Context, method string, apiError *APIError) (time.Duration, bool) {
+func retryDelay(ctx context.Context, method string, apiError *APIError, attempt int) (time.Duration, bool) {
 	if ctx.Err() != nil {
 		// net/http reports an expired deadline as a timeout, so this has to come first.
 		return 0, false
@@ -142,7 +148,7 @@ func retryDelay(ctx context.Context, method string, apiError *APIError) (time.Du
 		return 0, false
 	}
 	if isTransientStatusCode(apiError.statusCode()) || isTransientNetworkError(apiError.Err) {
-		return *getTransientRetryDelay(), true
+		return transientRetryDelay(attempt), true
 	}
 	return 0, false
 }
@@ -185,7 +191,7 @@ func (client APIClient) PerformRequestWithRetry(ctx context.Context, method stri
 		if !isAPIError || attempt == MAX_RETRIES-1 {
 			return nil, err
 		}
-		delay, retry := retryDelay(ctx, method, apiError)
+		delay, retry := retryDelay(ctx, method, apiError, attempt)
 		if !retry {
 			return nil, err
 		}
