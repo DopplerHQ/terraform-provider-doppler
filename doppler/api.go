@@ -31,10 +31,12 @@ type APIResponse struct {
 }
 
 type APIError struct {
-	Err        error
-	Message    string
-	RetryAfter *time.Duration
-	Response   *APIResponse
+	Err     error
+	Message string
+	// RetryAfter is set when the API asked for the request to be retried.
+	RetryAfter     *time.Duration
+	Response       *APIResponse
+	requestWritten bool
 }
 
 type ErrorResponse struct {
@@ -61,6 +63,13 @@ func (e *APIError) Error() string {
 		message = fmt.Sprintf("%s\n%s", message, underlyingError.Error())
 	}
 	return message
+}
+
+func (e *APIError) statusCode() int {
+	if e.Response == nil || e.Response.HTTPResponse == nil {
+		return 0
+	}
+	return e.Response.HTTPResponse.StatusCode
 }
 
 func isSuccess(statusCode int) bool {
@@ -98,10 +107,6 @@ func isTransientNetworkError(err error) bool {
 	return false
 }
 
-func isRetryableNetworkError(err error, method string, requestWritten bool) bool {
-	return (!requestWritten || isIdempotentMethod(method)) && isTransientNetworkError(err)
-}
-
 func getSecondsDuration(seconds int) *time.Duration {
 	duration := time.Duration(seconds) * time.Second
 	return &duration
@@ -110,6 +115,24 @@ func getSecondsDuration(seconds int) *time.Duration {
 var getTransientRetryDelay = func() *time.Duration {
 	duration := 500*time.Millisecond + rand.N(time.Second)
 	return &duration
+}
+
+func retryDelay(ctx context.Context, method string, apiError *APIError) (time.Duration, bool) {
+	if ctx.Err() != nil {
+		// net/http reports an expired deadline as a timeout, so this has to come first.
+		return 0, false
+	}
+	if apiError.RetryAfter != nil {
+		return *apiError.RetryAfter, true
+	}
+	// Resending is safe if the method is idempotent or the server never received the request.
+	if !isIdempotentMethod(method) && apiError.requestWritten {
+		return 0, false
+	}
+	if isTransientStatusCode(apiError.statusCode()) || isTransientNetworkError(apiError.Err) {
+		return *getTransientRetryDelay(), true
+	}
+	return 0, false
 }
 
 // httpClientWithTLSConfig builds the HTTP client used for all Doppler API calls, with a
@@ -149,10 +172,14 @@ func (client APIClient) PerformRequestWithRetry(ctx context.Context, method stri
 			return response, nil
 		}
 		apiError, isAPIError := err.(*APIError)
-		if !isAPIError || apiError.RetryAfter == nil {
+		if !isAPIError {
 			return nil, err
 		}
-		time.Sleep(*apiError.RetryAfter)
+		delay, retry := retryDelay(ctx, method, apiError)
+		if !retry {
+			return nil, err
+		}
+		time.Sleep(delay)
 	}
 	return nil, lastErr
 }
@@ -181,14 +208,7 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 
 	r, err := httpClient.Do(req)
 	if err != nil {
-		var retryAfter *time.Duration
-		if e, ok := err.(net.Error); ok && e.Timeout() {
-			retryAfter = getSecondsDuration(1)
-		} else if req.Context().Err() == nil && isRetryableNetworkError(err, req.Method, requestWritten.Load()) {
-			retryAfter = getTransientRetryDelay()
-		}
-
-		return nil, &APIError{Err: err, Message: "Unable to load response", RetryAfter: retryAfter}
+		return nil, &APIError{Err: err, Message: "Unable to load response", requestWritten: requestWritten.Load()}
 	}
 	defer func() {
 		// G307: We're OK to ignore failures to close the body.
@@ -199,18 +219,14 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 	body, err := io.ReadAll(r.Body)
 	response := &APIResponse{HTTPResponse: r, Body: body}
 	if err != nil {
-		var retryAfter *time.Duration
-		if isIdempotentMethod(req.Method) && isTransientNetworkError(err) {
-			retryAfter = getTransientRetryDelay()
-		}
-		return response, &APIError{Err: err, Message: "Unable to load response data", RetryAfter: retryAfter, Response: response}
+		return response, &APIError{Err: err, Message: "Unable to load response data", Response: response, requestWritten: true}
 	}
 
 	if !isSuccess(r.StatusCode) {
 		if contentType := r.Header.Get("content-type"); strings.HasPrefix(contentType, "application/json") {
 			var errResponse ErrorResponse
 			if err := json.Unmarshal(body, &errResponse); err != nil {
-				return response, &APIError{Err: err, Message: "Unable to load response", Response: response}
+				return response, &APIError{Err: err, Message: "Unable to load response", Response: response, requestWritten: true}
 			}
 
 			var retryAfter *time.Duration
@@ -235,20 +251,14 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 				retryAfter = nil
 			}
 			return response, &APIError{
-				Err:        nil,
-				Message:    strings.Join(errResponse.Messages, "\n"),
-				RetryAfter: retryAfter,
-				Response:   response,
+				Err:            nil,
+				Message:        strings.Join(errResponse.Messages, "\n"),
+				RetryAfter:     retryAfter,
+				Response:       response,
+				requestWritten: true,
 			}
 		}
-		var retryAfter *time.Duration
-		if isIdempotentMethod(req.Method) && isTransientStatusCode(r.StatusCode) {
-			retryAfter = getTransientRetryDelay()
-		}
-		return nil, &APIError{Err: fmt.Errorf("%d status code; %d bytes", r.StatusCode, len(body)), Message: "Unable to load response", RetryAfter: retryAfter, Response: response}
-	}
-	if err != nil {
-		return nil, &APIError{Err: err, Message: "Unable to parse response data", Response: response}
+		return nil, &APIError{Err: fmt.Errorf("%d status code; %d bytes", r.StatusCode, len(body)), Message: "Unable to load response", Response: response, requestWritten: true}
 	}
 	return response, nil
 }

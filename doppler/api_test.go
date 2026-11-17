@@ -3,6 +3,7 @@ package doppler
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -63,24 +64,30 @@ func (l *dropFirstConnListener) Accept() (net.Conn, error) {
 }
 
 func TestPerformRequestWithRetry_TransientStatusCodes(t *testing.T) {
+	html := "<html>error</html>"
+	jsonError := `{"messages":["Service unavailable"],"success":false}`
 	tests := []struct {
 		name        string
 		method      string
 		status      int
 		contentType string
+		body        string
 		wantCalls   int32
 		wantErr     bool
 	}{
-		{"GET 502 is retried", http.MethodGet, http.StatusBadGateway, "text/html", 2, false},
-		{"GET 503 is retried", http.MethodGet, http.StatusServiceUnavailable, "text/html", 2, false},
-		{"GET 504 is retried", http.MethodGet, http.StatusGatewayTimeout, "text/html", 2, false},
-		{"HEAD 502 is retried", http.MethodHead, http.StatusBadGateway, "text/html", 2, false},
-		{"DELETE 502 is retried", http.MethodDelete, http.StatusBadGateway, "text/html", 2, false},
-		{"POST 502 is not retried", http.MethodPost, http.StatusBadGateway, "text/html", 1, true},
-		{"PUT 502 is not retried", http.MethodPut, http.StatusBadGateway, "text/html", 1, true},
-		{"PATCH 502 is not retried", http.MethodPatch, http.StatusBadGateway, "text/html", 1, true},
-		{"GET 500 is not retried", http.MethodGet, http.StatusInternalServerError, "text/html", 1, true},
-		{"GET JSON 503 without retry data is not retried", http.MethodGet, http.StatusServiceUnavailable, "application/json", 1, true},
+		{"GET 502 is retried", http.MethodGet, http.StatusBadGateway, "text/html", html, 2, false},
+		{"GET 503 is retried", http.MethodGet, http.StatusServiceUnavailable, "text/html", html, 2, false},
+		{"GET 504 is retried", http.MethodGet, http.StatusGatewayTimeout, "text/html", html, 2, false},
+		{"HEAD 502 is retried", http.MethodHead, http.StatusBadGateway, "text/html", html, 2, false},
+		{"DELETE 502 is retried", http.MethodDelete, http.StatusBadGateway, "text/html", html, 2, false},
+		{"POST 502 is not retried", http.MethodPost, http.StatusBadGateway, "text/html", html, 1, true},
+		{"PUT 502 is not retried", http.MethodPut, http.StatusBadGateway, "text/html", html, 1, true},
+		{"PATCH 502 is not retried", http.MethodPatch, http.StatusBadGateway, "text/html", html, 1, true},
+		{"GET 500 is not retried", http.MethodGet, http.StatusInternalServerError, "text/html", html, 1, true},
+		{"GET JSON 503 is retried", http.MethodGet, http.StatusServiceUnavailable, "application/json", jsonError, 2, false},
+		{"GET 502 labelled JSON with an HTML body is retried", http.MethodGet, http.StatusBadGateway, "application/json", html, 2, false},
+		{"POST JSON 503 is not retried", http.MethodPost, http.StatusServiceUnavailable, "application/json", jsonError, 1, true},
+		{"GET JSON 400 is not retried", http.MethodGet, http.StatusBadRequest, "application/json", `{"messages":["Bad request"],"success":false}`, 1, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -90,11 +97,7 @@ func TestPerformRequestWithRetry_TransientStatusCodes(t *testing.T) {
 				if calls.Add(1) == 1 {
 					w.Header().Set("Content-Type", tt.contentType)
 					w.WriteHeader(tt.status)
-					if tt.contentType == "application/json" {
-						_, _ = w.Write([]byte(`{"messages":["Service unavailable"],"success":false}`))
-					} else {
-						_, _ = w.Write([]byte("<html>error</html>"))
-					}
+					_, _ = w.Write([]byte(tt.body))
 					return
 				}
 				writeSuccess(w)
@@ -271,6 +274,40 @@ func TestIsTransientNetworkError(t *testing.T) {
 	}
 }
 
+func TestRetryDelay(t *testing.T) {
+	stubTransientRetryDelay(t)
+	timeout := &url.Error{Op: "Get", URL: "https://api.doppler.com", Err: timeoutError{}}
+	status := func(code int) *APIResponse {
+		return &APIResponse{HTTPResponse: &http.Response{StatusCode: code}}
+	}
+	canceled, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	tests := []struct {
+		name      string
+		ctx       context.Context
+		method    string
+		apiError  APIError
+		wantRetry bool
+	}{
+		{"timeout before the request was written, POST", context.Background(), http.MethodPost, APIError{Err: timeout}, true},
+		{"timeout after the request was written, POST", context.Background(), http.MethodPost, APIError{Err: timeout, requestWritten: true}, false},
+		{"timeout after the request was written, GET", context.Background(), http.MethodGet, APIError{Err: timeout, requestWritten: true}, true},
+		{"timeout with a canceled context", canceled, http.MethodGet, APIError{Err: timeout}, false},
+		{"API asked for a retry, POST", context.Background(), http.MethodPost, APIError{RetryAfter: getSecondsDuration(0), Response: status(http.StatusConflict), requestWritten: true}, true},
+		{"502, GET", context.Background(), http.MethodGet, APIError{Response: status(http.StatusBadGateway), requestWritten: true}, true},
+		{"502, POST", context.Background(), http.MethodPost, APIError{Response: status(http.StatusBadGateway), requestWritten: true}, false},
+		{"500, GET", context.Background(), http.MethodGet, APIError{Response: status(http.StatusInternalServerError), requestWritten: true}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, retry := retryDelay(tt.ctx, tt.method, &tt.apiError); retry != tt.wantRetry {
+				t.Fatalf("retry = %v, want %v", retry, tt.wantRetry)
+			}
+		})
+	}
+}
+
 func TestPerformRequestWithRetry_ConnectionRefused(t *testing.T) {
 	retries := stubTransientRetryDelay(t)
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -290,20 +327,25 @@ func TestPerformRequestWithRetry_ConnectionRefused(t *testing.T) {
 	}
 }
 
-func TestPerformRequestWithRetry_CanceledContextIsNotRetried(t *testing.T) {
+func TestPerformRequestWithRetry_ExpiredDeadlineIsNotRetried(t *testing.T) {
 	retries := stubTransientRetryDelay(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-r.Context().Done():
+		case <-time.After(5 * time.Second):
+		}
 		writeSuccess(w)
 	}))
 	defer server.Close()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
 
 	client := APIClient{Host: server.URL, APIKey: "test", VerifyTLS: true}
 	_, err := client.PerformRequestWithRetry(ctx, http.MethodGet, "/v3/test", nil, nil)
-	if err == nil {
-		t.Fatal("expected error")
+	var apiError *APIError
+	if !errors.As(err, &apiError) || !errors.Is(apiError.Err, context.DeadlineExceeded) {
+		t.Fatalf("err = %v, want a deadline error", err)
 	}
 	if got := retries.Load(); got != 0 {
 		t.Fatalf("retries = %d, want 0", got)
