@@ -81,7 +81,19 @@ func isIdempotentMethod(method string) bool {
 }
 
 func isTransientStatusCode(statusCode int) bool {
-	return statusCode == http.StatusBadGateway || statusCode == http.StatusServiceUnavailable || statusCode == http.StatusGatewayTimeout
+	switch statusCode {
+	case http.StatusBadGateway,
+		http.StatusServiceUnavailable,
+		http.StatusGatewayTimeout,
+		// Cloudflare origin errors, which net/http has no constants for.
+		520, // unknown error
+		521, // web server is down
+		522, // connection timed out
+		523, // origin is unreachable
+		524: // a timeout occurred
+		return true
+	}
+	return false
 }
 
 func isTransientNetworkError(err error) bool {
