@@ -20,9 +20,10 @@ import (
 )
 
 type APIClient struct {
-	Host      string
-	APIKey    string
-	VerifyTLS bool
+	Host       string
+	APIKey     string
+	VerifyTLS  bool
+	httpClient *http.Client
 }
 
 type APIResponse struct {
@@ -165,8 +166,9 @@ func httpClientWithTLSConfig(verifyTLS bool) *http.Client {
 	return &http.Client{
 		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
-			DisableKeepAlives: true,
-			TLSClientConfig:   tlsConfig,
+			MaxIdleConnsPerHost: 10,
+			IdleConnTimeout:     90 * time.Second,
+			TLSClientConfig:     tlsConfig,
 		},
 	}
 }
@@ -216,7 +218,10 @@ func (client APIClient) PerformRequestWithRetry(ctx context.Context, method stri
 }
 
 func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (*APIResponse, error) {
-	httpClient := httpClientWithTLSConfig(client.VerifyTLS)
+	httpClient := client.httpClient
+	if httpClient == nil {
+		httpClient = httpClientWithTLSConfig(client.VerifyTLS)
+	}
 
 	userAgent := fmt.Sprintf("terraform-provider-doppler/%s", ProviderVersion)
 	req.Header.Set("user-agent", userAgent)
