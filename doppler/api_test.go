@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -30,6 +31,12 @@ func stubTransientRetryDelay(t *testing.T, delay time.Duration) *atomic.Int32 {
 func writeSuccess(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write([]byte(`{}`))
+}
+
+func writeJSONError(w http.ResponseWriter, status int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, _ = fmt.Fprintf(w, `{"messages":[%q],"success":false}`, message)
 }
 
 func dropConnection(t *testing.T, w http.ResponseWriter, raw string) {
@@ -402,6 +409,57 @@ func TestPerformRequestWithRetry_GivesUpAfterMaxRetries(t *testing.T) {
 	if got := retries.Load(); got != MAX_RETRIES-1 {
 		t.Fatalf("retries = %d, want %d", got, MAX_RETRIES-1)
 	}
+}
+
+func TestPerformRequestWithRetry_DeleteNotFoundAfterRetry(t *testing.T) {
+	t.Run("404 after a 502 counts as deleted", func(t *testing.T) {
+		stubTransientRetryDelay(t, 0)
+		var calls atomic.Int32
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if calls.Add(1) == 1 {
+				w.WriteHeader(http.StatusBadGateway)
+				return
+			}
+			writeJSONError(w, http.StatusNotFound, "Could not find project")
+		}))
+		defer server.Close()
+
+		client := APIClient{Host: server.URL, APIKey: "test", VerifyTLS: true}
+		if _, err := client.PerformRequestWithRetry(context.Background(), http.MethodDelete, "/v3/test", nil, nil); err != nil {
+			t.Fatalf("err = %v, want nil", err)
+		}
+		if got := calls.Load(); got != 2 {
+			t.Fatalf("calls = %d, want 2", got)
+		}
+	})
+
+	t.Run("404 on the first attempt is an error", func(t *testing.T) {
+		stubTransientRetryDelay(t, 0)
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			writeJSONError(w, http.StatusNotFound, "Could not find project")
+		}))
+		defer server.Close()
+
+		client := APIClient{Host: server.URL, APIKey: "test", VerifyTLS: true}
+		if _, err := client.PerformRequestWithRetry(context.Background(), http.MethodDelete, "/v3/test", nil, nil); err == nil {
+			t.Fatal("expected error")
+		}
+	})
+
+	t.Run("404 after a retry the server never received is an error", func(t *testing.T) {
+		stubTransientRetryDelay(t, 0)
+		server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			writeJSONError(w, http.StatusNotFound, "Could not find project")
+		}))
+		server.Listener = &dropFirstConnListener{Listener: server.Listener}
+		server.StartTLS()
+		defer server.Close()
+
+		client := APIClient{Host: server.URL, APIKey: "test", VerifyTLS: false}
+		if _, err := client.PerformRequestWithRetry(context.Background(), http.MethodDelete, "/v3/test", nil, nil); err == nil {
+			t.Fatal("expected error")
+		}
+	})
 }
 
 func TestTransientRetryDelay(t *testing.T) {

@@ -172,6 +172,7 @@ func httpClientWithTLSConfig(verifyTLS bool) *http.Client {
 }
 
 func (client APIClient) PerformRequestWithRetry(ctx context.Context, method string, path string, params []QueryParam, body []byte) (*APIResponse, error) {
+	mayHaveApplied := false
 	for attempt := 0; ; attempt++ {
 		url := fmt.Sprintf("%s%s", client.Host, path)
 		var bodyReader io.Reader
@@ -188,13 +189,21 @@ func (client APIClient) PerformRequestWithRetry(ctx context.Context, method stri
 			return response, nil
 		}
 		apiError, isAPIError := err.(*APIError)
-		if !isAPIError || attempt == MAX_RETRIES-1 {
+		if !isAPIError {
+			return nil, err
+		}
+		if mayHaveApplied && method == http.MethodDelete && apiError.statusCode() == http.StatusNotFound {
+			// An earlier attempt deleted the resource but its response was lost.
+			return apiError.Response, nil
+		}
+		if attempt == MAX_RETRIES-1 {
 			return nil, err
 		}
 		delay, retry := retryDelay(ctx, method, apiError, attempt)
 		if !retry {
 			return nil, err
 		}
+		mayHaveApplied = mayHaveApplied || apiError.requestWritten
 
 		timer := time.NewTimer(delay)
 		select {
