@@ -166,8 +166,7 @@ func httpClientWithTLSConfig(verifyTLS bool) *http.Client {
 }
 
 func (client APIClient) PerformRequestWithRetry(ctx context.Context, method string, path string, params []QueryParam, body []byte) (*APIResponse, error) {
-	var lastErr error
-	for i := 0; i < MAX_RETRIES; i++ {
+	for attempt := 0; ; attempt++ {
 		url := fmt.Sprintf("%s%s", client.Host, path)
 		var bodyReader io.Reader
 		if body != nil {
@@ -179,21 +178,26 @@ func (client APIClient) PerformRequestWithRetry(ctx context.Context, method stri
 		}
 
 		response, err := client.PerformRequest(req, params)
-		lastErr = err
 		if err == nil {
 			return response, nil
 		}
 		apiError, isAPIError := err.(*APIError)
-		if !isAPIError {
+		if !isAPIError || attempt == MAX_RETRIES-1 {
 			return nil, err
 		}
 		delay, retry := retryDelay(ctx, method, apiError)
 		if !retry {
 			return nil, err
 		}
-		time.Sleep(delay)
+
+		timer := time.NewTimer(delay)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return nil, err
+		case <-timer.C:
+		}
 	}
-	return nil, lastErr
 }
 
 func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (*APIResponse, error) {

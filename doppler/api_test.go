@@ -16,12 +16,12 @@ import (
 	"time"
 )
 
-func stubTransientRetryDelay(t *testing.T) *atomic.Int32 {
+func stubTransientRetryDelay(t *testing.T, delay time.Duration) *atomic.Int32 {
 	original := getTransientRetryDelay
 	var calls atomic.Int32
 	getTransientRetryDelay = func() *time.Duration {
 		calls.Add(1)
-		return getSecondsDuration(0)
+		return &delay
 	}
 	t.Cleanup(func() { getTransientRetryDelay = original })
 	return &calls
@@ -94,7 +94,7 @@ func TestPerformRequestWithRetry_TransientStatusCodes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			stubTransientRetryDelay(t)
+			stubTransientRetryDelay(t, 0)
 			var calls atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if calls.Add(1) == 1 {
@@ -133,7 +133,7 @@ func TestPerformRequestWithRetry_ConnectionDroppedAfterRequestWritten(t *testing
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			stubTransientRetryDelay(t)
+			stubTransientRetryDelay(t, 0)
 			var calls atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if calls.Add(1) == 1 {
@@ -168,7 +168,7 @@ func TestPerformRequestWithRetry_TruncatedResponseBody(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			stubTransientRetryDelay(t)
+			stubTransientRetryDelay(t, 0)
 			var calls atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if calls.Add(1) == 1 {
@@ -194,7 +194,7 @@ func TestPerformRequestWithRetry_TruncatedResponseBody(t *testing.T) {
 func TestPerformRequestWithRetry_ConnectionDroppedDuringTLSHandshake(t *testing.T) {
 	for _, method := range []string{http.MethodGet, http.MethodPost} {
 		t.Run(method, func(t *testing.T) {
-			retries := stubTransientRetryDelay(t)
+			retries := stubTransientRetryDelay(t, 0)
 			var calls atomic.Int32
 			server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				calls.Add(1)
@@ -220,7 +220,7 @@ func TestPerformRequestWithRetry_ConnectionDroppedDuringTLSHandshake(t *testing.
 }
 
 func TestPerformRequestWithRetry_TLSVersionRejectedIsNotRetried(t *testing.T) {
-	retries := stubTransientRetryDelay(t)
+	retries := stubTransientRetryDelay(t, 0)
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeSuccess(w)
 	}))
@@ -278,7 +278,7 @@ func TestIsTransientNetworkError(t *testing.T) {
 }
 
 func TestRetryDelay(t *testing.T) {
-	stubTransientRetryDelay(t)
+	stubTransientRetryDelay(t, 0)
 	timeout := &url.Error{Op: "Get", URL: "https://api.doppler.com", Err: timeoutError{}}
 	status := func(code int) *APIResponse {
 		return &APIResponse{HTTPResponse: &http.Response{StatusCode: code}}
@@ -312,7 +312,7 @@ func TestRetryDelay(t *testing.T) {
 }
 
 func TestPerformRequestWithRetry_ConnectionRefused(t *testing.T) {
-	retries := stubTransientRetryDelay(t)
+	retries := stubTransientRetryDelay(t, 0)
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -325,13 +325,14 @@ func TestPerformRequestWithRetry_ConnectionRefused(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if got := retries.Load(); got != MAX_RETRIES {
-		t.Fatalf("retries = %d, want %d", got, MAX_RETRIES)
+	// No delay after the final attempt.
+	if got := retries.Load(); got != MAX_RETRIES-1 {
+		t.Fatalf("retries = %d, want %d", got, MAX_RETRIES-1)
 	}
 }
 
 func TestPerformRequestWithRetry_ExpiredDeadlineIsNotRetried(t *testing.T) {
-	retries := stubTransientRetryDelay(t)
+	retries := stubTransientRetryDelay(t, 0)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-r.Context().Done():
@@ -355,8 +356,34 @@ func TestPerformRequestWithRetry_ExpiredDeadlineIsNotRetried(t *testing.T) {
 	}
 }
 
+func TestPerformRequestWithRetry_CancelDuringRetryDelayReturnsPromptly(t *testing.T) {
+	stubTransientRetryDelay(t, time.Hour)
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		w.WriteHeader(http.StatusBadGateway)
+	}))
+	defer server.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	time.AfterFunc(100*time.Millisecond, cancel)
+
+	client := APIClient{Host: server.URL, APIKey: "test", VerifyTLS: true}
+	start := time.Now()
+	_, err := client.PerformRequestWithRetry(ctx, http.MethodGet, "/v3/test", nil, nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if elapsed := time.Since(start); elapsed > 5*time.Second {
+		t.Fatalf("returned after %v, want prompt return on cancel", elapsed)
+	}
+	if got := calls.Load(); got != 1 {
+		t.Fatalf("calls = %d, want 1", got)
+	}
+}
+
 func TestPerformRequestWithRetry_GivesUpAfterMaxRetries(t *testing.T) {
-	stubTransientRetryDelay(t)
+	retries := stubTransientRetryDelay(t, 0)
 	var calls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
@@ -371,6 +398,9 @@ func TestPerformRequestWithRetry_GivesUpAfterMaxRetries(t *testing.T) {
 	}
 	if got := calls.Load(); got != MAX_RETRIES {
 		t.Fatalf("calls = %d, want %d", got, MAX_RETRIES)
+	}
+	if got := retries.Load(); got != MAX_RETRIES-1 {
+		t.Fatalf("retries = %d, want %d", got, MAX_RETRIES-1)
 	}
 }
 
