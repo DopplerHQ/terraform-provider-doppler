@@ -16,7 +16,6 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
-	"syscall"
 	"time"
 )
 
@@ -76,16 +75,31 @@ func isTransientStatusCode(statusCode int) bool {
 	return statusCode == http.StatusBadGateway || statusCode == http.StatusServiceUnavailable || statusCode == http.StatusGatewayTimeout
 }
 
-func isConnectionDropped(err error) bool {
-	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, syscall.ECONNRESET)
+func isTransientNetworkError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) {
+		return dnsErr.IsTemporary
+	}
+	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+		return true
+	}
+	for _, errno := range transientConnectionErrnos {
+		if errors.Is(err, errno) {
+			return true
+		}
+	}
+	return false
 }
 
 func isRetryableNetworkError(err error, method string, requestWritten bool) bool {
-	if !requestWritten {
-		var opErr *net.OpError
-		return errors.As(err, &opErr) || isConnectionDropped(err)
-	}
-	return isIdempotentMethod(method) && isConnectionDropped(err)
+	return (!requestWritten || isIdempotentMethod(method)) && isTransientNetworkError(err)
 }
 
 func getSecondsDuration(seconds int) *time.Duration {
@@ -186,7 +200,7 @@ func (client APIClient) PerformRequest(req *http.Request, params []QueryParam) (
 	response := &APIResponse{HTTPResponse: r, Body: body}
 	if err != nil {
 		var retryAfter *time.Duration
-		if isIdempotentMethod(req.Method) && isConnectionDropped(err) {
+		if isIdempotentMethod(req.Method) && isTransientNetworkError(err) {
 			retryAfter = getTransientRetryDelay()
 		}
 		return response, &APIError{Err: err, Message: "Unable to load response data", RetryAfter: retryAfter, Response: response}

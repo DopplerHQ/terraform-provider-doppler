@@ -2,10 +2,15 @@ package doppler
 
 import (
 	"context"
+	"crypto/tls"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"os"
 	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -203,6 +208,64 @@ func TestPerformRequestWithRetry_ConnectionDroppedDuringTLSHandshake(t *testing.
 			}
 			if got := calls.Load(); got != 1 {
 				t.Fatalf("calls = %d, want 1", got)
+			}
+		})
+	}
+}
+
+func TestPerformRequestWithRetry_TLSVersionRejectedIsNotRetried(t *testing.T) {
+	retries := stubTransientRetryDelay(t)
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeSuccess(w)
+	}))
+	server.TLS = &tls.Config{MaxVersion: tls.VersionTLS11}
+	server.StartTLS()
+	defer server.Close()
+
+	client := APIClient{Host: server.URL, APIKey: "test", VerifyTLS: false}
+	_, err := client.PerformRequestWithRetry(context.Background(), http.MethodGet, "/v3/test", nil, nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if got := retries.Load(); got != 0 {
+		t.Fatalf("retries = %d, want 0 (err = %v)", got, err)
+	}
+}
+
+type timeoutError struct{}
+
+func (timeoutError) Error() string   { return "i/o timeout" }
+func (timeoutError) Timeout() bool   { return true }
+func (timeoutError) Temporary() bool { return true }
+
+func TestIsTransientNetworkError(t *testing.T) {
+	wrap := func(err error) error {
+		return &url.Error{Op: "Get", URL: "https://api.doppler.com", Err: err}
+	}
+	sysErr := func(errno syscall.Errno) error {
+		return wrap(&net.OpError{Op: "read", Net: "tcp", Err: os.NewSyscallError("read", errno)})
+	}
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"timeout", wrap(timeoutError{}), true},
+		{"unknown host", wrap(&net.OpError{Op: "dial", Err: &net.DNSError{Err: "no such host", IsNotFound: true}}), false},
+		{"temporary DNS failure", wrap(&net.OpError{Op: "dial", Err: &net.DNSError{Err: "server misbehaving", IsTemporary: true}}), true},
+		{"TLS alert", wrap(&net.OpError{Op: "remote error", Err: tls.AlertError(70)}), false},
+		{"connection refused", sysErr(syscall.ECONNREFUSED), true},
+		{"connection reset", sysErr(syscall.ECONNRESET), true},
+		{"connection aborted", sysErr(syscall.ECONNABORTED), true},
+		{"broken pipe", sysErr(syscall.EPIPE), true},
+		{"EOF", wrap(io.EOF), true},
+		{"unexpected EOF", io.ErrUnexpectedEOF, true},
+		{"nil", nil, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isTransientNetworkError(tt.err); got != tt.want {
+				t.Fatalf("isTransientNetworkError() = %v, want %v", got, tt.want)
 			}
 		})
 	}
