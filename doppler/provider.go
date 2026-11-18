@@ -163,6 +163,14 @@ func Provider() *schema.Provider {
 			"doppler_integration_gcp_cloudsql_mysql_oidc":     resourceIntegrationGCPCloudSQLOIDC("gcp_cloudsql_mysql"),
 			"doppler_integration_gcp_cloudsql_postgres_oidc":  resourceIntegrationGCPCloudSQLOIDC("gcp_cloudsql_postgres"),
 			"doppler_integration_gcp_cloudsql_sqlserver_oidc": resourceIntegrationGCPCloudSQLOIDC("gcp_cloudsql_sqlserver"),
+
+			// creating Vercel oauth integrations is not currently supported
+			// "doppler_integration_vercel":  resourceIntegrationVercel(),
+			"doppler_secrets_sync_vercel": resourceSyncVercel(),
+
+			// creating Supabase oauth integrations is not currently supported
+			// "doppler_integration_supabase":  resourceIntegrationSupabase(),
+			"doppler_secrets_sync_supabase": resourceSyncSupabase(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"doppler_secrets":      dataSourceSecrets(),
