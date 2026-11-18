@@ -32,7 +32,8 @@ resource "doppler_project_member_user_role_assignment" "backend_brian_collaborat
   project      = "backend"
   user_slug    = data.doppler_user.brian.slug
   role         = "collaborator"
-  environments = ["prd"]
+  environments = ["stg"]
+  configs      = ["prd_hotfix"]
 }
 ```
 
@@ -47,6 +48,7 @@ resource "doppler_project_member_user_role_assignment" "backend_brian_collaborat
 
 ### Optional
 
+- `configs` (Set of String) The names of the configs in the project where this role applies (null or omitted for roles with access to all environments). See https://docs.doppler.com/docs/advanced-permissions#grant-access-to-individual-configs for details.
 - `environments` (Set of String) The environments in the project where this role applies (null or omitted for roles with access to all environments)
 
 ### Read-Only

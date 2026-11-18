@@ -54,6 +54,14 @@ func (builder ResourceProjectMemberRoleBuilder) Build() *schema.Resource {
 				Type: schema.TypeString,
 			},
 		},
+		"configs": {
+			Description: "The names of the configs in the project where this role applies (null or omitted for roles with access to all environments). See https://docs.doppler.com/docs/advanced-permissions#grant-access-to-individual-configs for details.",
+			Type:        schema.TypeSet,
+			Optional:    true,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+		},
 	}
 
 	for name, subschema := range builder.DataSchema {
@@ -80,14 +88,15 @@ func (builder ResourceProjectMemberRoleBuilder) CreateContextFunc() schema.Creat
 		var diags diag.Diagnostics
 		project := d.Get("project").(string)
 		role := d.Get("role").(string)
-		environments := getProjectMemberRoleEnvironments(d)
+		environments := getProjectMemberRoleSet(d, "environments")
+		configs := getProjectMemberRoleSet(d, "configs")
 
 		memberSlug, err := builder.GetMemberSlugFunc(ctx, d, m)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
-		assignment, err := client.CreateProjectMemberRole(ctx, project, builder.MemberType, *memberSlug, role, environments)
+		assignment, err := client.CreateProjectMemberRole(ctx, project, builder.MemberType, *memberSlug, role, environments, configs)
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -113,7 +122,7 @@ func (builder ResourceProjectMemberRoleBuilder) UpdateContextFunc() schema.Updat
 			return diag.FromErr(err)
 		}
 
-		assignment, err := client.UpdateProjectMemberRole(ctx, project, memberType, memberSlug, role, getProjectMemberRoleEnvironments(d))
+		assignment, err := client.UpdateProjectMemberRole(ctx, project, memberType, memberSlug, role, getProjectMemberRoleSet(d, "environments"), getProjectMemberRoleSet(d, "configs"))
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -181,15 +190,18 @@ func (builder ResourceProjectMemberRoleBuilder) DeleteContextFunc() schema.Delet
 	}
 }
 
-func getProjectMemberRoleEnvironments(d *schema.ResourceData) []string {
-	rawEnvironments := d.Get("environments").(*schema.Set).List()
-	environments := make([]string, len(rawEnvironments))
-	for i, v := range rawEnvironments {
-		environments[i] = v.(string)
+func getProjectMemberRoleSet(d *schema.ResourceData, key string) []string {
+	rawValues := d.Get(key).(*schema.Set).List()
+	values := make([]string, len(rawValues))
+	for i, v := range rawValues {
+		values[i] = v.(string)
 	}
-	return environments
+	return values
 }
 
 func updateProjectMemberRoleState(d *schema.ResourceData, assignment *ProjectMemberRoleAssignment) error {
-	return d.Set("environments", assignment.Environments)
+	if err := d.Set("environments", assignment.Environments); err != nil {
+		return err
+	}
+	return d.Set("configs", assignment.Configs)
 }
